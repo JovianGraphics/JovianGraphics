@@ -2,24 +2,24 @@
 
 ## Level 0 Components
 
-[Prototype] Ganymede - Cross-platform Utilities (Debug output, etc.)
+1. [Prototype] Ganymede - Cross-platform Utilities (Debug output, etc.)
 
 ## Level 1 Components
 
-[Prototype] Io - Platform IO / Native Window Module
-[Prototype] Europa - GFX API
-[Plan] Pasiphae - Async File IO
-[Plan] Thebe - Sound
+1. [Prototype] Io - Platform IO / Native Window Module
+2. [Prototype] Europa - GFX API
+3. [Plan] Pasiphae - Async File IO
+4. [Plan] Thebe - Sound
 
 ## Level 2 Components
 
-[Plan] Amalthea - Renderer
-[Plan] Himalia - Asset Import / Export Module
-[Plan] Elara - Geometry Engine (Collision, Ray-casting, etc.)
+1. [Plan] Amalthea - Renderer
+2. [Plan] Himalia - Asset Import / Export Module
+3. [Plan] Elara - Geometry Engine (Collision, Ray-casting, etc.)
 
 ## Level 3 Components
 
-[Plan] Callisto - Game Editor / Engine
+1. [Plan] Callisto - Game Editor / Engine
 
 ## External Dependencies
 
