@@ -1,0 +1,4 @@
+#pragma once
+
+#define IO_WIN32
+#define EUROPA_VULKAN
