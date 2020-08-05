@@ -6,6 +6,15 @@
 
 #include <vulkan/vulkan.h>
 
+VkFormat EuropaImageFormat2VkFormat(EuropaImageFormat f);
+EuropaImageFormat VkFormat2EuropaImageFormat(VkFormat f);
+
+inline VkColorSpaceKHR EuropaColorSpace2VkColorSpaceKHR(EuropaColorSpace c) { return VkColorSpaceKHR(c); }
+inline EuropaColorSpace VkColorSpaceKHR2EuropaColorSpace(VkColorSpaceKHR c) { return EuropaColorSpace(c); }
+
+inline VkPresentModeKHR EuropaPresentMode2VkPresentModeKHR(EuropaPresentMode m) { return VkPresentModeKHR(m); }
+inline EuropaPresentMode VkPresentModeKHR2EuropaPresentMode(VkPresentModeKHR m) { return EuropaPresentMode(m); }
+
 class EuropaSurfaceVk : public EuropaSurface
 {
 public:
@@ -25,8 +34,19 @@ public:
 	std::vector<EuropaQueueFamilyProperties> GetQueueFamilies(EuropaSurface* surface);
 	void CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFamilyProperties* queues, uint32* queueCount);
 	EuropaQueue* GetQueue(EuropaQueueFamilyProperties& queue);
+	EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface);
+	EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args);
 
 	~EuropaDeviceVk();
+};
+
+class EuropaSwapChainVk : public EuropaSwapChain
+{
+public:
+	EuropaDeviceVk* m_device;
+	VkSwapchainKHR m_swapchain;
+
+	~EuropaSwapChainVk();
 };
 
 class EuropaQueueVk : public EuropaQueue

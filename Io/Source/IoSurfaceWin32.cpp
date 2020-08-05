@@ -55,7 +55,7 @@ IoSurfaceWin32::IoSurfaceWin32(HINSTANCE hInstance)
         WS_OVERLAPPEDWINDOW,            // Window style
 
         // Size and position
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        CW_USEDEFAULT, CW_USEDEFAULT, size.x, size.y,
 
         NULL,       // Parent window    
         NULL,       // Menu
@@ -93,6 +93,11 @@ void IoSurfaceWin32::Run()
 
 void IoSurfaceWin32::OnClose()
 {
+}
+
+glm::uvec2 IoSurfaceWin32::GetSize()
+{
+    return size;
 }
 
 LRESULT IoSurfaceWin32::WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam)

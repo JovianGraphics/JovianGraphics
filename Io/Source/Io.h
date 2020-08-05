@@ -2,12 +2,16 @@
 
 #include "config.h"
 
+#include <glm/glm.hpp>
+
 class IoSurface
 {
 public:
 	virtual ~IoSurface() {};
 	virtual void Run() = 0;
 	virtual void OnClose() = 0;
+
+	virtual glm::uvec2 GetSize() = 0;
 };
 
 #ifdef IO_WIN32
@@ -19,6 +23,8 @@ class IoSurfaceWin32 : public IoSurface
 private:
 	bool Running = true;
 
+	glm::uvec2 size = glm::uvec2(1280, 600);
+
 public:
 	HWND m_hwnd;
 	HINSTANCE m_hInstance;
@@ -28,6 +34,8 @@ public:
 
 	void Run();
 	void OnClose();
+
+	glm::uvec2 GetSize();
 
 	LRESULT WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

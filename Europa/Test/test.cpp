@@ -17,7 +17,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		GanymedePrint d->GetName(), ":", EuropaDeviceTypeNames[uint32_t(d->GetType())];
 	}
 
-	EuropaDevice* selectedDevice = devices[0];
+	EuropaDevice* selectedDevice = devices[1]; // Integrated GPU for this AMD Ryzen laptop
 
 	EuropaSurface* surface = europa.CreateSurface(&s);
 
@@ -56,6 +56,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		throw std::runtime_error("This device has a seperate graphics and present queue");
 	}
+
+	EuropaSwapChainCapabilities swapChainCaps = selectedDevice->getSwapChainCapabilities(surface);
+
+	EuropaSwapChainCreateInfo swapChainCreateInfo;
+	swapChainCreateInfo.colorSpace = EuropaColorSpace::GammaSRGB;
+	swapChainCreateInfo.extent = swapChainCaps.surfaceCaps.currentExtent;
+	swapChainCreateInfo.format = EuropaImageFormat::BGRA8sRGB;
+	swapChainCreateInfo.imageCount = 3;
+	swapChainCreateInfo.numLayers = 1;
+	swapChainCreateInfo.presentMode = EuropaPresentMode::FIFORelaxed;
+	swapChainCreateInfo.surface = surface;
+	swapChainCreateInfo.surfaceTransform = swapChainCaps.surfaceCaps.currentTransform;
+
+	EuropaSwapChain* swapChain = selectedDevice->CreateSwapChain(swapChainCreateInfo);
 
 	s.Run();
 
