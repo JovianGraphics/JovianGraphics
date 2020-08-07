@@ -14,10 +14,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	std::vector<EuropaDevice*> devices = europa.GetDevices();
 	for (EuropaDevice* d : devices)
 	{
-		GanymedePrint d->GetName(), ":", EuropaDeviceTypeNames[uint32_t(d->GetType())];
+		GanymedePrint d->GetName(), ":", EuropaDeviceTypeToString(d->GetType());
 	}
 
-	EuropaDevice* selectedDevice = devices[1]; // Integrated GPU for this AMD Ryzen laptop
+	EuropaDevice* selectedDevice = devices[0];
 
 	EuropaSurface* surface = europa.CreateSurface(&s);
 
@@ -25,6 +25,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	EuropaQueueFamilyProperties requiredQueues[2];
 	bool foundGraphics = false, foundPresent = false;
+	for (auto q : queueFamily)
+		GanymedePrint "Queue family", q.queueIndex, "has capabilities:" , EuropaQueueCapabilitiesToString(q.capabilityFlags);
 	for (auto q : queueFamily)
 	{
 		if (+(q.capabilityFlags & EuropaQueueCapabilities::Graphics))
@@ -58,6 +60,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	EuropaSwapChainCapabilities swapChainCaps = selectedDevice->getSwapChainCapabilities(surface);
+
+	GanymedePrint "Surface Formats:";
+	for (EuropaSurfaceFormat& format : swapChainCaps.formats)
+		GanymedePrint EuropaImageFormatToString(format.format), EuropaColorSpaceToString(format.colorSpace);
 
 	EuropaSwapChainCreateInfo swapChainCreateInfo;
 	swapChainCreateInfo.colorSpace = EuropaColorSpace::GammaSRGB;

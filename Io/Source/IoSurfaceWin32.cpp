@@ -107,9 +107,9 @@ LRESULT IoSurfaceWin32::WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_CLOSE:
         Running = false;
         break;
-    default:
-        return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
     }
+
+    return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }
 
 #endif

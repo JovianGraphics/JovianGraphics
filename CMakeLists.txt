@@ -12,6 +12,9 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_subdirectory(External/glm)
 include_directories(${CMAKE_SOURCE_DIR}/External/glm)
 
+add_subdirectory(External/preprocessor)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
 add_subdirectory(Ganymede)
 add_subdirectory(Io)
 add_subdirectory(Europa)

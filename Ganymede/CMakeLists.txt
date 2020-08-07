@@ -7,6 +7,8 @@ project ("Ganymede")
 
 add_library(Ganymede
 	Source/Ganymede.cpp
- "Source/Ganymede.h" )
+)
+
+target_link_libraries(Ganymede Boost::preprocessor)
 
 include_directories(Source)
