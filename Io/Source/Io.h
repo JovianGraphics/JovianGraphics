@@ -4,11 +4,13 @@
 
 #include <glm/glm.hpp>
 
+#include <functional>
+
 class IoSurface
 {
 public:
 	virtual ~IoSurface() {};
-	virtual void Run() = 0;
+	virtual void Run(std::function<void()> loopFunc) = 0;
 	virtual void OnClose() = 0;
 
 	virtual glm::uvec2 GetSize() = 0;
@@ -32,7 +34,7 @@ public:
 	IoSurfaceWin32(HINSTANCE hInstance);
 	~IoSurfaceWin32();
 
-	void Run();
+	void Run(std::function<void()> loopFunc);
 	void OnClose();
 
 	glm::uvec2 GetSize();

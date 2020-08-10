@@ -382,6 +382,65 @@ EuropaSwapChain* EuropaDeviceVk::CreateSwapChain(EuropaSwapChainCreateInfo& args
     return swapChain;
 }
 
+std::vector<EuropaImage*> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain* _swapChain)
+{
+    EuropaSwapChainVk* swapChain = reinterpret_cast<EuropaSwapChainVk*>(_swapChain);
+
+    uint32 imageCount = 0;
+    vkGetSwapchainImagesKHR(m_device, swapChain->m_swapchain, &imageCount, nullptr);
+
+    std::vector<VkImage> swapChainImages(imageCount);
+    vkGetSwapchainImagesKHR(m_device, swapChain->m_swapchain, &imageCount, swapChainImages.data());
+
+    std::vector<EuropaImage*> images;
+
+    for (VkImage& i : swapChainImages)
+    {
+        EuropaImageVk* image = new EuropaImageVk();
+        image->m_image = i;
+
+        images.push_back(image);
+    }
+
+    return images;
+}
+
+EuropaImageView* EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args)
+{
+    EuropaImageVk* image = reinterpret_cast<EuropaImageVk*>(args.image);
+
+    EuropaImageViewVk* view = new EuropaImageViewVk();
+    view->m_device = this;
+
+    VkImageViewCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    info.image = image->m_image;
+    info.viewType = VkImageViewType(args.type);
+    info.format = EuropaImageFormat2VkFormat(args.format);
+    info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    info.subresourceRange.baseMipLevel = args.minMipLevel;
+    info.subresourceRange.levelCount = args.numMipLevels;
+    info.subresourceRange.baseArrayLayer = args.minArrayLayer;
+    info.subresourceRange.layerCount = args.numArrayLayers;
+
+    if (vkCreateImageView(m_device, &info, nullptr, &view->m_view) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create image views!");
+    }
+
+    return view;
+}
+
+EuropaImageViewVk::~EuropaImageViewVk()
+{
+    EuropaDeviceVk* device = reinterpret_cast<EuropaDeviceVk*>(m_device);
+
+    vkDestroyImageView(device->m_device, m_view, nullptr);
+}
+
 EuropaDeviceVk::~EuropaDeviceVk()
 {
     if (m_device)

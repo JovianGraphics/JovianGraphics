@@ -53,9 +53,9 @@ namespace __hidden__
 
 #define GANYMEDE_ENUM_NUMBERED_SEQ_X(s, data, elem) BOOST_PP_TUPLE_ELEM(0, elem) = BOOST_PP_TUPLE_ELEM(1, elem)
 #define GANYMEDE_ENUM_NUMBERED_SEQ_ELEM(s, data, elem) BOOST_PP_TUPLE_ELEM(0, elem)
-#define GANYMEDE_ENUM_NUMBERED_PRINT_NAME(r, name, elem) if (value == elem) return BOOST_PP_STRINGIZE(elem);
+#define GANYMEDE_ENUM_NUMBERED_PRINT_NAME(r, name, elem) if (value == name::elem) return BOOST_PP_STRINGIZE(elem);
 #define GANYMEDE_ENUM_NUMBERED(name, val_seq)                                                  \
-    enum name : uint32 {                                                                       \
+    enum class name : uint32 {                                                                 \
         BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(GANYMEDE_ENUM_NUMBERED_SEQ_X, ~, val_seq))    \
     };                                                                                         \
     static const char* BOOST_PP_CAT(name, Strings[] = ) {                                      \

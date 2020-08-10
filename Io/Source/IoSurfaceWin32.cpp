@@ -77,7 +77,7 @@ IoSurfaceWin32::~IoSurfaceWin32()
     DestroyWindow(m_hwnd);
 }
 
-void IoSurfaceWin32::Run()
+void IoSurfaceWin32::Run(std::function<void()> loopFunc)
 {
     MSG msg;
     WNDCLASS wincl;
@@ -86,6 +86,8 @@ void IoSurfaceWin32::Run()
     {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
+
+        loopFunc();
     }
 
     OnClose();

@@ -156,6 +156,16 @@ GANYMEDE_ENUM_FLAGS(EuropaSurfaceTransform,
 	((Inherit, 0x00000100))
 )
 
+GANYMEDE_ENUM_NUMBERED(EuropaImageViewType,
+	((View1D, 0))
+	((View2D, 1))
+	((View3D, 2))
+	((ViewCube, 3))
+	((View1DArray, 4))
+	((View2DArray, 5))
+	((ViewCubeArray, 6))
+)
+
 struct EuropaSurfaceCapabilities
 {
 	uint32 minImageCount;
@@ -218,6 +228,29 @@ public:
 	virtual ~EuropaSwapChain() {};
 };
 
+class EuropaImage
+{
+public:
+	virtual ~EuropaImage() {};
+};
+
+struct EuropaImageViewCreateInfo
+{
+	EuropaImage* image;
+	EuropaImageViewType type;
+	EuropaImageFormat format;
+	uint32 minMipLevel;
+	uint32 numMipLevels;
+	uint32 minArrayLayer;
+	uint32 numArrayLayers;
+};
+
+class EuropaImageView
+{
+public:
+	virtual ~EuropaImageView() {};
+};
+
 class EuropaDevice
 {
 public:
@@ -228,6 +261,8 @@ public:
 	virtual EuropaQueue* GetQueue(EuropaQueueFamilyProperties& queue) = 0;
 	virtual EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface) = 0;
 	virtual EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args) = 0;
+	virtual std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain) = 0;
+	virtual EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args) = 0;
 	virtual ~EuropaDevice() {};
 };
 

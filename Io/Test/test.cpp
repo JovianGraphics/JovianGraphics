@@ -7,7 +7,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 {
 	IoSurface& s = IoSurfaceWin32(hInstance);
 
-	s.Run();
+	s.Run([]() {});
 
 	return 0;
 }

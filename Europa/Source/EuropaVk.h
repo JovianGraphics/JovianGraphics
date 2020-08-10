@@ -36,6 +36,8 @@ public:
 	EuropaQueue* GetQueue(EuropaQueueFamilyProperties& queue);
 	EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface);
 	EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args);
+	std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain);
+	EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args);
 
 	~EuropaDeviceVk();
 };
@@ -47,6 +49,21 @@ public:
 	VkSwapchainKHR m_swapchain;
 
 	~EuropaSwapChainVk();
+};
+
+class EuropaImageVk : public EuropaImage
+{
+public:
+	VkImage m_image;
+};
+
+class EuropaImageViewVk : public EuropaImageView
+{
+public:
+	EuropaDeviceVk* m_device;
+	VkImageView m_view;
+
+	~EuropaImageViewVk();
 };
 
 class EuropaQueueVk : public EuropaQueue

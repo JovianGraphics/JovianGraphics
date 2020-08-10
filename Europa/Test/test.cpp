@@ -77,7 +77,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	EuropaSwapChain* swapChain = selectedDevice->CreateSwapChain(swapChainCreateInfo);
 
-	s.Run();
+	std::vector<EuropaImage*> swapChainImages = selectedDevice->GetSwapChainImages(swapChain);
+	std::vector<EuropaImageView*> swapChainImageViews;
+
+	for (auto image : swapChainImages)
+	{
+		EuropaImageViewCreateInfo info{};
+		info.format = EuropaImageFormat::BGRA8sRGB;
+		info.image = image;
+		info.minArrayLayer = 0;
+		info.numArrayLayers = 1;
+		info.minMipLevel = 0;
+		info.numMipLevels = 1;
+		info.type = EuropaImageViewType::View2D;
+
+		swapChainImageViews.push_back(selectedDevice->CreateImageView(info));
+	}
+
+	s.Run([]() {
+
+	});
 
 	GanymedeDelete(surface);
 	GanymedeDelete(cmdQueue);
