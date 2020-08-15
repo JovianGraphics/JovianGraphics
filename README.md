@@ -28,6 +28,7 @@ Universal
 - glm (In-tree submodule)
 - ImGUI (In-tree submodule, Planned)
 - Vulkan Memory Allocator (In-tree submodule, Planned)
+- Ruby (Installed seperately, used in tools and scripts)
 
 Windows
 - Windows SDK, maybe
