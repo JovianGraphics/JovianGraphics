@@ -9,6 +9,8 @@ add_library(Io
 	Source/IoSurfaceWin32.cpp
 )
 
+set_property(TARGET Io PROPERTY CXX_STANDARD 17)
+
 if(WIN32)
 
 add_executable(IoTest WIN32

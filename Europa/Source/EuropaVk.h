@@ -38,6 +38,8 @@ public:
 	EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args);
 	std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain);
 	EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args);
+	EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args);
+	EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size);
 
 	~EuropaDeviceVk();
 };
@@ -64,6 +66,20 @@ public:
 	VkImageView m_view;
 
 	~EuropaImageViewVk();
+};
+
+class EuropaFramebufferVk : public EuropaFramebuffer
+{
+public:
+	~EuropaFramebufferVk();
+};
+
+class EuropaShaderModuleVk : public EuropaShaderModule
+{
+public:
+	VkShaderModule m_shaderModule;
+
+	~EuropaShaderModuleVk();
 };
 
 class EuropaQueueVk : public EuropaQueue

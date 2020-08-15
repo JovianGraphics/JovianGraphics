@@ -251,6 +251,25 @@ public:
 	virtual ~EuropaImageView() {};
 };
 
+struct EuropaFramebufferCreateInfo
+{
+	std::vector<EuropaImageView*> attachments;
+	uint32 width;
+	uint32 height;
+};
+
+class EuropaFramebuffer
+{
+public:
+	virtual ~EuropaFramebuffer() {};
+};
+
+class EuropaShaderModule
+{
+public:
+	virtual ~EuropaShaderModule() {};
+};
+
 class EuropaDevice
 {
 public:
@@ -263,6 +282,8 @@ public:
 	virtual EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args) = 0;
 	virtual std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain) = 0;
 	virtual EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args) = 0;
+	virtual EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args) = 0;
+	virtual EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;
 	virtual ~EuropaDevice() {};
 };
 

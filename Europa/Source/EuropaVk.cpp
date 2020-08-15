@@ -142,7 +142,9 @@ EuropaVk::EuropaVk()
         throw std::runtime_error("failed to create Vulkan instance!");
     }
 
+#ifdef _DEBUG
     SetupDebugMessenger();
+#endif
 }
 
 EuropaVk::~EuropaVk()
@@ -434,6 +436,27 @@ EuropaImageView* EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args
     return view;
 }
 
+EuropaFramebuffer* EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo& args)
+{
+    return nullptr;
+}
+
+EuropaShaderModule* EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, uint32 size)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = size;
+    createInfo.pCode = spvBinary;
+
+    EuropaShaderModuleVk* m = new EuropaShaderModuleVk();
+
+    if (vkCreateShaderModule(m_device, &createInfo, nullptr, &m->m_shaderModule) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create shader module!");
+    }
+
+    return m;
+}
+
 EuropaImageViewVk::~EuropaImageViewVk()
 {
     EuropaDeviceVk* device = reinterpret_cast<EuropaDeviceVk*>(m_device);
@@ -707,4 +730,12 @@ VkFormat EuropaImageFormat2VkFormat(EuropaImageFormat f)
 EuropaImageFormat VkFormat2EuropaImageFormat(VkFormat f)
 {
     return formatsFromVk[uint32(f)];
+}
+
+EuropaFramebufferVk::~EuropaFramebufferVk()
+{
+}
+
+EuropaShaderModuleVk::~EuropaShaderModuleVk()
+{
 }

@@ -1,14 +1,14 @@
 #include "Io/Source/Io.h"
+#include "Io/Source/IoEntryFunc.h"
 #include "Europa/Source/Europa.h"
 #include "Europa/Source/EuropaVk.h"
 #include "Ganymede/Source/Ganymede.h"
 
-#ifdef IO_WIN32
+#include "triangle.frag.h"
+#include "triangle.vert.h"
 
-// Entry point
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+int AppMain(IoSurface& s)
 {
-	IoSurface& s = IoSurfaceWin32(hInstance);
 	Europa& europa = EuropaVk();
 
 	std::vector<EuropaDevice*> devices = europa.GetDevices();
@@ -94,14 +94,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		swapChainImageViews.push_back(selectedDevice->CreateImageView(info));
 	}
 
+	EuropaShaderModule* shaderFragment = selectedDevice->CreateShaderModule(shader_spv_triangle_frag, sizeof(shader_spv_triangle_frag));
+	EuropaShaderModule* shaderVertex = selectedDevice->CreateShaderModule(shader_spv_triangle_vert, sizeof(shader_spv_triangle_vert));
+
 	s.Run([]() {
 
 	});
 
+	GanymedeDelete(shaderFragment);
+	GanymedeDelete(shaderVertex);
+	GanymedeDelete(swapChain);
 	GanymedeDelete(surface);
 	GanymedeDelete(cmdQueue);
 
 	return 0;
 }
-
-#endif
