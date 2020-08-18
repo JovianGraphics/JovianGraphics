@@ -9,6 +9,12 @@
 
 #include <thread>
 
+struct Vertex
+{
+	glm::vec2 pos;
+	glm::vec3 color;
+};
+
 int AppMain(IoSurface& s)
 {
 	Europa& europa = EuropaVk();
@@ -96,6 +102,28 @@ int AppMain(IoSurface& s)
 		swapChainImageViews.push_back(selectedDevice->CreateImageView(info));
 	}
 
+	const std::vector<Vertex> vertices = {
+		{{0.0f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}
+	};
+
+	EuropaVertexInputBindingInfo binding;
+	binding.binding = 0;
+	binding.stride = sizeof(Vertex);
+	binding.perInstance = false;
+
+	EuropaVertexAttributeBindingInfo attributes[2];
+	attributes[0].binding = 0;
+	attributes[0].location = 0;
+	attributes[0].offset = offsetof(Vertex, Vertex::pos);
+	attributes[0].format = EuropaImageFormat::RG32F;
+	
+	attributes[1].binding = 0;
+	attributes[1].location = 1;
+	attributes[1].offset = offsetof(Vertex, Vertex::color);
+	attributes[1].format = EuropaImageFormat::RGB32F;
+
 	EuropaShaderModule* shaderFragment = selectedDevice->CreateShaderModule(shader_spv_triangle_frag, sizeof(shader_spv_triangle_frag));
 	EuropaShaderModule* shaderVertex = selectedDevice->CreateShaderModule(shader_spv_triangle_vert, sizeof(shader_spv_triangle_vert));
 
@@ -125,8 +153,10 @@ int AppMain(IoSurface& s)
 
 	pipelineDesc.shaderStageCount = 2;
 	pipelineDesc.stages = stages;
-	pipelineDesc.vertexInput.attributeBindingCount = 0;
-	pipelineDesc.vertexInput.vertexBindingCount = 0;
+	pipelineDesc.vertexInput.vertexBindingCount = 1;
+	pipelineDesc.vertexInput.vertexBindings = &binding;
+	pipelineDesc.vertexInput.attributeBindingCount = 2;
+	pipelineDesc.vertexInput.attributeBindings = attributes;
 	pipelineDesc.viewport.position = glm::vec2(0.0);
 	pipelineDesc.viewport.size = swapChainCaps.surfaceCaps.currentExtent;
 	pipelineDesc.viewport.minDepth = 0.0f;
@@ -152,9 +182,35 @@ int AppMain(IoSurface& s)
 		framebuffers.push_back(selectedDevice->CreateFramebuffer(desc));
 	}
 
+	EuropaBufferInfo vertexBufferInfo;
+	vertexBufferInfo.exclusive = true;
+	vertexBufferInfo.size = uint32(vertices.size() * sizeof(Vertex));
+	vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferDst);
+	vertexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
+	EuropaBuffer* vertexBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
+	vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferSrc);
+	vertexBufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
+	EuropaBuffer* vertexUploadBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
+
+	Vertex* mappedBuffer = vertexUploadBuffer->Map<Vertex>();
+	memcpy(mappedBuffer, vertices.data(), vertexBufferInfo.size);
+	vertexUploadBuffer->Unmap();
+
 	EuropaCommandPool* cmdpool = selectedDevice->CreateCommandPool(requiredQueues[0]);
 
 	std::vector<EuropaCmdlist*> cmdlists = cmdpool->AllocateCommandBuffers(0, uint32(swapChainImages.size()));
+
+	{
+		EuropaCmdlist* copyCmdlist = cmdpool->AllocateCommandBuffers(0, 1)[0];
+		copyCmdlist->Begin();
+		copyCmdlist->CopyBuffer(vertexBuffer, vertexUploadBuffer, vertexBufferInfo.size);
+		copyCmdlist->End();
+
+		cmdQueue->Submit(0, nullptr, nullptr, 1, &copyCmdlist, 0, nullptr);
+		cmdQueue->WaitIdle();
+
+		GanymedeDelete(vertexUploadBuffer);
+	}
 
 	uint32 i = 0;
 	for (EuropaCmdlist* cmdlist : cmdlists)
@@ -162,6 +218,7 @@ int AppMain(IoSurface& s)
 		cmdlist->Begin();
 		cmdlist->BeginRenderpass(renderpass, framebuffers[i], glm::ivec2(0), glm::uvec2(swapChainCaps.surfaceCaps.currentExtent), 1, glm::vec4(0.0, 0.0, 0.0, 1.0));
 		cmdlist->BindPipeline(pipeline);
+		cmdlist->BindVertexBuffer(vertexBuffer, 0);
 		cmdlist->DrawInstanced(3, 1, 0, 0);
 		cmdlist->EndRenderpass();
 		cmdlist->End();
@@ -217,6 +274,7 @@ int AppMain(IoSurface& s)
 
 	selectedDevice->WaitIdle();
 
+	GanymedeDelete(vertexBuffer);
 	for (auto f : inFlightFences) GanymedeDelete(f);
 	for (auto s : imageAvailableSemaphore) GanymedeDelete(s);
 	for (auto s : renderFinishedSemaphore) GanymedeDelete(s);

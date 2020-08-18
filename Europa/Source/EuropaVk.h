@@ -5,6 +5,7 @@
 #ifdef EUROPA_VULKAN
 
 #include <vulkan/vulkan.h>
+#include "External/VulkanMemoryAllocator/src/vk_mem_alloc.h"
 
 VkFormat EuropaImageFormat2VkFormat(EuropaImageFormat f);
 EuropaImageFormat VkFormat2EuropaImageFormat(VkFormat f);
@@ -26,6 +27,9 @@ public:
 class EuropaDeviceVk : public EuropaDevice
 {
 public:
+	VkInstance& m_instance;
+	VmaAllocator m_allocator;
+
 	VkPhysicalDevice m_phyDevice = nullptr;
 	VkDevice m_device = nullptr;
 
@@ -49,7 +53,9 @@ public:
 	void WaitIdle();
 	void WaitForFences(uint32 numFences, EuropaFence** fences, bool waitAll = true, uint64 timeout = UINT64_MAX);
 	void ResetFences(uint32 numFences, EuropaFence** fences);
+	EuropaBuffer* CreateBuffer(EuropaBufferInfo& args);
 
+	EuropaDeviceVk(VkInstance& instance);
 	~EuropaDeviceVk();
 };
 
@@ -62,6 +68,21 @@ public:
 	uint32 AcquireNextImage(EuropaSemaphore* semaphore);
 
 	~EuropaSwapChainVk();
+};
+
+class EuropaBufferVk : public EuropaBuffer
+{
+public:
+	EuropaDeviceVk* m_device;
+	EuropaBufferInfo m_info;
+	VkBuffer m_buffer;
+	VmaAllocation m_allocation;
+	
+	void* MapT();
+	void Unmap();
+	EuropaBufferInfo GetInfo();
+
+	~EuropaBufferVk();
 };
 
 class EuropaImageVk : public EuropaImage
@@ -136,6 +157,8 @@ public:
 	void EndRenderpass();
 	void BindPipeline(EuropaGraphicsPipeline* pipeline);
 	void DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance);
+	void BindVertexBuffer(EuropaBuffer* buffer, uint32 binding);
+	void CopyBuffer(EuropaBuffer* dst, EuropaBuffer* src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0);
 
 	~EuropaCmdlistVk() {};
 };
