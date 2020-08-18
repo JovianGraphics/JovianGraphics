@@ -68,7 +68,8 @@ namespace __hidden__
 
 #define GANYMEDE_ENUM_FLAGS_SEQ_X(s, data, elem) BOOST_PP_CAT(data, BOOST_PP_TUPLE_ELEM(0, elem)) = BOOST_PP_TUPLE_ELEM(1, elem)
 #define GANYMEDE_ENUM_FLAGS_SEQ_ELEM(s, data, elem) BOOST_PP_CAT(data, BOOST_PP_TUPLE_ELEM(0, elem))
-#define GANYMEDE_ENUM_FLAGS_PRINT_NAME(r, name, elem) if (+(value & elem)) ss << BOOST_PP_STRINGIZE(elem) << " ";
+#define GANYMEDE_ENUM_FLAGS_SEQ_ELEM_NAME(s, data, elem) BOOST_PP_TUPLE_ELEM(0, elem)
+#define GANYMEDE_ENUM_FLAGS_PRINT_NAME(r, name, elem) if (+(value & BOOST_PP_CAT(name, elem))) ss << BOOST_PP_STRINGIZE(elem) << " ";
 #define GANYMEDE_ENUM_FLAGS(name, val_seq)                                                     \
     enum name : uint32 {                                                                       \
         BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(GANYMEDE_ENUM_FLAGS_SEQ_X, name, val_seq))    \
@@ -78,6 +79,6 @@ namespace __hidden__
     };                                                                                         \
     static std::string name##ToString(name value) {                                            \
         std::stringstream ss;                                                                  \
-        BOOST_PP_SEQ_FOR_EACH(GANYMEDE_ENUM_FLAGS_PRINT_NAME, name, BOOST_PP_SEQ_TRANSFORM(GANYMEDE_ENUM_FLAGS_SEQ_ELEM, name, val_seq)) \
+        BOOST_PP_SEQ_FOR_EACH(GANYMEDE_ENUM_FLAGS_PRINT_NAME, name, BOOST_PP_SEQ_TRANSFORM(GANYMEDE_ENUM_FLAGS_SEQ_ELEM_NAME, ~, val_seq)) \
         return ss.str();                                                                       \
     };

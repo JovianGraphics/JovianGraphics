@@ -401,8 +401,8 @@ struct EuropaVertexInputStageInfo
 
 struct EuropaInputAssemblyStageInfo
 {
-	EuropaPrimitiveTopology topology;
-	bool primitiveRestartEnable;
+	EuropaPrimitiveTopology topology = EuropaPrimitiveTopology::TriangleList;
+	bool primitiveRestartEnable = false;
 };
 
 struct EuropaViewport
@@ -429,11 +429,11 @@ struct EuropaPipelineViewportStateInfo
 
 struct EuropaRasterizerStateInfo
 {
-	bool depthClamp;
-	bool rasterizerDiscard;
-	bool cullBackFace;
-	bool cullFrontFace;
-	bool counterClockwise;
+	bool depthClamp = false;
+	bool rasterizerDiscard = false;
+	bool cullBackFace = false;
+	bool cullFrontFace = false;
+	bool counterClockwise = true;
 };
 
 struct EuropaPipelineLayoutInfo

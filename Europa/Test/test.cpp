@@ -127,22 +127,15 @@ int AppMain(IoSurface& s)
 	pipelineDesc.stages = stages;
 	pipelineDesc.vertexInput.attributeBindingCount = 0;
 	pipelineDesc.vertexInput.vertexBindingCount = 0;
-	pipelineDesc.inputAssembly.topology = EuropaPrimitiveTopology::TriangleList;
-	pipelineDesc.inputAssembly.primitiveRestartEnable = false;
 	pipelineDesc.viewport.position = glm::vec2(0.0);
 	pipelineDesc.viewport.size = swapChainCaps.surfaceCaps.currentExtent;
 	pipelineDesc.viewport.minDepth = 0.0f;
 	pipelineDesc.viewport.maxDepth = 1.0f;
 	pipelineDesc.scissor.position = glm::vec2(0.0);
 	pipelineDesc.scissor.size = swapChainCaps.surfaceCaps.currentExtent;
-	pipelineDesc.rasterizer.depthClamp = false;
-	pipelineDesc.rasterizer.counterClockwise = true;
-	pipelineDesc.rasterizer.cullBackFace = false;
-	pipelineDesc.rasterizer.cullFrontFace = false;
-	pipelineDesc.rasterizer.rasterizerDiscard = false;
 	pipelineDesc.layout = pipelineLayout;
 	pipelineDesc.renderpass = renderpass;
-	pipelineDesc.targetSubpass = 0;
+	pipelineDesc.targetSubpass = forwardPass;
 
 	EuropaGraphicsPipeline* pipeline = selectedDevice->CreateGraphicsPipeline(pipelineDesc);
 
