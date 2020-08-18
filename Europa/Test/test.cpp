@@ -102,7 +102,7 @@ int AppMain(IoSurface& s)
 	EuropaPipelineLayout* pipelineLayout = selectedDevice->CreatePipelineLayout(EuropaPipelineLayoutInfo{ 0, 0 });
 
 	EuropaRenderPass* renderpass = selectedDevice->CreateRenderPassBuilder();
-	renderpass->AddAttachment(EuropaAttachmentInfo{
+	uint32 presentTarget = renderpass->AddAttachment(EuropaAttachmentInfo{
 		EuropaImageFormat::BGRA8sRGB,
 		EuropaAttachmentLoadOp::Clear,
 		EuropaAttachmentStoreOp::Store,
@@ -111,9 +111,9 @@ int AppMain(IoSurface& s)
 		EuropaImageLayout::Undefined,
 		EuropaImageLayout::Present
 	});
-	std::vector<EuropaAttachmentReference> attachments = { { 0, EuropaImageLayout::ColorAttachment } };
-	renderpass->AddSubpass(EuropaPipelineBindPoint::Graphics, attachments);
-	renderpass->AddDependency(EuropaRenderPass::SubpassExternal, 0, EuropaPipelineStageColorAttachmentOutput, EuropaAccessNone, EuropaPipelineStageColorAttachmentOutput, EuropaAccessColorAttachmentWrite);
+	std::vector<EuropaAttachmentReference> attachments = { { presentTarget, EuropaImageLayout::ColorAttachment } };
+	uint32 forwardPass = renderpass->AddSubpass(EuropaPipelineBindPoint::Graphics, attachments);
+	renderpass->AddDependency(EuropaRenderPass::SubpassExternal, forwardPass, EuropaPipelineStageColorAttachmentOutput, EuropaAccessNone, EuropaPipelineStageColorAttachmentOutput, EuropaAccessColorAttachmentWrite);
 	renderpass->CreateRenderpass();
 
 	EuropaGraphicsPipelineCreateInfo pipelineDesc{};

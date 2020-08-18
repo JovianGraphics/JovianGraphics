@@ -1016,7 +1016,7 @@ EuropaPipelineLayoutVk::~EuropaPipelineLayoutVk()
     vkDestroyPipelineLayout(m_device->m_device, m_layout, nullptr);
 }
 
-void EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
+uint32 EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
 {
     VkAttachmentDescription desc{};
     desc.format = EuropaImageFormat2VkFormat(attachment.format);
@@ -1029,9 +1029,11 @@ void EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
     desc.finalLayout = VkImageLayout(attachment.finalLayout);
 
     attachments.push_back(desc);
+
+    return attachments.size() - 1;
 }
 
-void EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments)
+uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments)
 {
     size_t head = attachmentReferences.size();
 
@@ -1051,6 +1053,8 @@ void EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vect
     subpass.pColorAttachments = &attachmentReferences[head];
 
     subpasses.push_back(subpass);
+
+    return subpasses.size() - 1;
 }
 
 void EuropaRenderPassVk::AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess)

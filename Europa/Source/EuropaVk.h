@@ -179,8 +179,8 @@ public:
 	EuropaDeviceVk* m_device;
 	VkRenderPass m_renderPass;
 	
-	void AddAttachment(EuropaAttachmentInfo& attachment);
-	void AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments);
+	uint32 AddAttachment(EuropaAttachmentInfo& attachment);
+	uint32 AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments);
 	void AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess);
 	void CreateRenderpass();
 

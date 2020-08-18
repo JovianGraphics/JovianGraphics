@@ -471,8 +471,8 @@ class EuropaRenderPass
 public:
 	static const uint32 SubpassExternal = 0xFFFFFFFF;
 
-	virtual void AddAttachment(EuropaAttachmentInfo& attachment) = 0;
-	virtual void AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments) = 0;
+	virtual uint32 AddAttachment(EuropaAttachmentInfo& attachment) = 0;
+	virtual uint32 AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments) = 0;
 	virtual void AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess) = 0;
 	virtual void CreateRenderpass() = 0;
 
