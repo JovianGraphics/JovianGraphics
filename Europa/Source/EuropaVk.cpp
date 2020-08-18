@@ -1,5 +1,3 @@
-#define VMA_IMPLEMENTATION
-
 #include "EuropaVk.h"
 #include "Ganymede/Source/Ganymede.h"
 
@@ -1254,8 +1252,11 @@ void EuropaCmdlistVk::BindVertexBuffer(EuropaBuffer* _buffer, uint32 binding)
 {
     EuropaBufferVk* buffer = static_cast<EuropaBufferVk*>(_buffer);
 
+    VmaAllocationInfo vmaInfo;
+    vmaGetAllocationInfo(m_device->m_allocator, buffer->m_allocation, &vmaInfo);
+
     VkBuffer vertexBuffers[] = { buffer->m_buffer };
-    VkDeviceSize offsets[] = { buffer->m_allocation->GetOffset() };
+    VkDeviceSize offsets[] = { vmaInfo.offset };
     vkCmdBindVertexBuffers(m_cmdlist, binding, 1, vertexBuffers, offsets);
 }
 
@@ -1264,10 +1265,14 @@ void EuropaCmdlistVk::CopyBuffer(EuropaBuffer* _dst, EuropaBuffer* _src, uint32 
     EuropaBufferVk* dst = static_cast<EuropaBufferVk*>(_dst);
     EuropaBufferVk* src = static_cast<EuropaBufferVk*>(_src);
 
+    VmaAllocationInfo dstInfo, srcInfo;
+    vmaGetAllocationInfo(m_device->m_allocator, dst->m_allocation, &dstInfo);
+    vmaGetAllocationInfo(m_device->m_allocator, src->m_allocation, &srcInfo);
+
     VkBufferCopy copy{};
     copy.size = size;
-    copy.srcOffset = srcOffset + src->m_allocation->GetOffset();
-    copy.dstOffset = dstOffset + dst->m_allocation->GetOffset();
+    copy.srcOffset = srcOffset + srcInfo.offset;
+    copy.dstOffset = dstOffset + dstInfo.offset;
 
     vkCmdCopyBuffer(m_cmdlist, src->m_buffer, dst->m_buffer, 1, &copy);
 }

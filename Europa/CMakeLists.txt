@@ -7,6 +7,7 @@ project ("Europa")
 
 add_library(Europa
 	Source/EuropaVk.cpp
+	Source/EuropaVkAllocator.cpp
 )
 
 set_property(TARGET Europa PROPERTY CXX_STANDARD 17)
