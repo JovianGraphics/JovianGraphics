@@ -146,25 +146,142 @@ GANYMEDE_ENUM_NUMBERED(EuropaPresentMode,
 
 GANYMEDE_ENUM_FLAGS(EuropaSurfaceTransform,
 	((Identity, 0x00000001))
-	((Rotate90, 0x00000002))
-	((Rotate180, 0x00000004))
-	((Rotate270, 0x00000008))
-	((HorizontalMirror, 0x00000010))
-	((HorizontalMirrorRotate90, 0x00000020))
-	((HorizontalMirrorRotate180, 0x00000040))
-	((HorizontalMirrorRotate270, 0x00000080))
-	((Inherit, 0x00000100))
+((Rotate90, 0x00000002))
+((Rotate180, 0x00000004))
+((Rotate270, 0x00000008))
+((HorizontalMirror, 0x00000010))
+((HorizontalMirrorRotate90, 0x00000020))
+((HorizontalMirrorRotate180, 0x00000040))
+((HorizontalMirrorRotate270, 0x00000080))
+((Inherit, 0x00000100))
 )
 
 GANYMEDE_ENUM_NUMBERED(EuropaImageViewType,
-	((View1D, 0))
-	((View2D, 1))
-	((View3D, 2))
-	((ViewCube, 3))
-	((View1DArray, 4))
-	((View2DArray, 5))
-	((ViewCubeArray, 6))
+((View1D, 0))
+((View2D, 1))
+((View3D, 2))
+((ViewCube, 3))
+((View1DArray, 4))
+((View2DArray, 5))
+((ViewCubeArray, 6))
 )
+
+GANYMEDE_ENUM_FLAGS(EuropaShaderStage,
+((Vertex, 0x00000001))
+((TessControl, 0x00000002))
+((TessEval, 0x00000004))
+((Geometry, 0x00000008))
+((Fragment, 0x00000010))
+((Compute, 0x00000020))
+((AllGraphics, 0x0000001F))
+((All, 0x7FFFFFFF))
+((RayGen, 0x00000100))
+((AnyHit, 0x00000200))
+((ClosestHit, 0x00000400))
+((Miss, 0x00000800))
+((Intersection, 0x00001000))
+((Callable, 0x00002000))
+((Task, 0x00000040))
+((Mesh, 0x00000080))
+)
+
+GANYMEDE_ENUM_NUMBERED(EuropaPrimitiveTopology,
+((Points, 0))
+((LineList, 1))
+((LineStrip, 2))
+((TriangleList, 3))
+((TriangleStrip, 4))
+((TriangleFan, 5))
+((LineListWithAdjacency, 6))
+((LineStripWithAdjacency, 7))
+((TriangleListWithAdjacency, 8))
+((TriangleStripWithAdjacency, 9))
+((PatchList, 10))
+)
+
+GANYMEDE_ENUM_NUMBERED(EuropaAttachmentLoadOp,
+((Load, 0))
+((Clear, 1))
+((DontCare, 2))
+)
+
+GANYMEDE_ENUM_NUMBERED(EuropaAttachmentStoreOp,
+((Store, 0))
+((DontCare, 1))
+)
+
+GANYMEDE_ENUM_NUMBERED(EuropaImageLayout,
+((Undefined, 0))
+((General, 1))
+((ColorAttachment, 2))
+((DepthStencilAttachment, 3))
+((DepthStencilReadOnly, 4))
+((ShaderReadOnly, 5))
+((TransferSrc, 6))
+((TransferDst, 7))
+((Preinitialized, 8))
+((Present, 1000001002))
+((SharedPresent, 1000111000))
+)
+
+GANYMEDE_ENUM_NUMBERED(EuropaPipelineBindPoint,
+((Graphics, 0))
+((Compute, 1))
+((RayTracing, 1000165000))
+)
+
+GANYMEDE_ENUM_FLAGS(EuropaPipelineStage,
+	((TopOfPipe, 0x00000001))
+	((DrawIndirect, 0x00000002))
+	((VertexInput, 0x00000004))
+	((VertexShader, 0x00000008))
+	((TessControlShader, 0x00000010))
+	((TessEvalShader, 0x00000020))
+	((GeometryShader, 0x00000040))
+	((FragmentShader, 0x00000080))
+	((EarlyFragmentTests, 0x00000100))
+	((LateFragmentTests, 0x00000200))
+	((ColorAttachmentOutput, 0x00000400))
+	((ComputeShader, 0x00000800))
+	((Transfer, 0x00001000))
+	((BottomOfPipe, 0x00002000))
+	((Host, 0x00004000))
+	((AllGraphics, 0x00008000))
+	((AllCommands, 0x00010000))
+)
+
+GANYMEDE_ENUM_FLAGS(EuropaAccess,
+	((None, 0x0))
+	((IndirectCommandRead, 0x00000001))
+	((IndexRead, 0x00000002))
+	((VertexAttrRead, 0x00000004))
+	((UniformRead, 0x00000008))
+	((InputAttachmentRead, 0x00000010))
+	((ShaderRead, 0x00000020))
+	((ShaderWrite, 0x00000040))
+	((ColorAttachmentRead, 0x00000080))
+	((ColorAttachmentWrite, 0x00000100))
+	((DepthStencilAttachmentRead, 0x00000200))
+	((DepthStencilAttachmentWrite, 0x00000400))
+	((TransferRead, 0x00000800))
+	((TransferWrite, 0x00001000))
+	((HostRead, 0x00002000))
+	((HostWrite, 0x00004000))
+	((MemoryRead, 0x00008000))
+	((MemoryWrite, 0x00010000))
+)
+
+class EuropaSemaphore
+{
+public:
+	virtual ~EuropaSemaphore() {};
+};
+
+class EuropaFence
+{
+public:
+	virtual ~EuropaFence() {};
+};
 
 struct EuropaSurfaceCapabilities
 {
@@ -204,11 +321,7 @@ struct EuropaQueueFamilyProperties
 	bool presentSupport;
 };
 
-class EuropaQueue
-{
-public:
-	virtual ~EuropaQueue() {};
-};
+class EuropaCmdlist;
 
 struct EuropaSwapChainCreateInfo
 {
@@ -225,7 +338,22 @@ struct EuropaSwapChainCreateInfo
 class EuropaSwapChain
 {
 public:
+	virtual uint32 AcquireNextImage(EuropaSemaphore* semaphore) = 0;
+
 	virtual ~EuropaSwapChain() {};
+};
+
+class EuropaQueue
+{
+public:
+	virtual void Submit(
+		uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, EuropaPipelineStage* waitStages,
+		uint32 cmdlistCount, EuropaCmdlist** cmdlists,
+		uint32 signalSemaphoreCount, EuropaSemaphore** signalSemaphores, EuropaFence* fence = nullptr) = 0;
+	virtual void Present(uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, uint32 swapchainCount, EuropaSwapChain** swapchains, uint32 imageIndex) = 0;
+	virtual void WaitIdle() = 0;
+
+	virtual ~EuropaQueue() {};
 };
 
 class EuropaImage
@@ -251,11 +379,137 @@ public:
 	virtual ~EuropaImageView() {};
 };
 
+class EuropaShaderModule
+{
+public:
+	virtual ~EuropaShaderModule() {};
+};
+
+struct EuropaShaderStageInfo
+{
+	EuropaShaderStage stage;
+	EuropaShaderModule* module;
+	const char* entryPoint;
+};
+
+struct EuropaVertexInputStageInfo
+{		
+	uint32 vertexBindingCount;
+	uint32 attributeBindingCount;
+	// FIXME: actual binding descriptors
+};
+
+struct EuropaInputAssemblyStageInfo
+{
+	EuropaPrimitiveTopology topology;
+	bool primitiveRestartEnable;
+};
+
+struct EuropaViewport
+{
+	glm::vec2 position;
+	glm::vec2 size;
+	float minDepth;
+	float maxDepth;
+};
+
+struct EuropaScissor
+{
+	glm::ivec2 position;
+	glm::ivec2 size;
+};
+
+struct EuropaPipelineViewportStateInfo
+{
+	uint32 viewportCount;
+	uint32 scissorCount;
+	EuropaViewport* viewports;
+	EuropaScissor* scissors;
+};
+
+struct EuropaRasterizerStateInfo
+{
+	bool depthClamp;
+	bool rasterizerDiscard;
+	bool cullBackFace;
+	bool cullFrontFace;
+	bool counterClockwise;
+};
+
+struct EuropaPipelineLayoutInfo
+{
+	uint32 setLayoutCount;
+	uint32 pushConstantRangeCount;
+	// FIXME: Support more than 0 on these values
+};
+
+class EuropaPipelineLayout
+{
+public:
+	virtual ~EuropaPipelineLayout() {};
+};
+
+struct EuropaAttachmentInfo
+{
+	EuropaImageFormat format;
+	EuropaAttachmentLoadOp loadOp;
+	EuropaAttachmentStoreOp storeOp;
+	EuropaAttachmentLoadOp stencilLoadOp;
+	EuropaAttachmentStoreOp stencilStoreOp;
+	EuropaImageLayout initialLayout;
+	EuropaImageLayout finalLayout;
+};
+
+struct EuropaAttachmentReference
+{
+	uint32 attachment;
+	EuropaImageLayout layout;
+};
+
+class EuropaRenderPass
+{
+public:
+	static const uint32 SubpassExternal = 0xFFFFFFFF;
+
+	virtual void AddAttachment(EuropaAttachmentInfo& attachment) = 0;
+	virtual void AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments) = 0;
+	virtual void AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess) = 0;
+	virtual void CreateRenderpass() = 0;
+
+	virtual ~EuropaRenderPass() {};
+};
+
+struct EuropaGraphicsPipelineCreateInfo
+{
+	uint32 shaderStageCount = 0;
+	EuropaShaderStageInfo* stages = nullptr;
+	EuropaVertexInputStageInfo vertexInput;
+	EuropaInputAssemblyStageInfo inputAssembly;
+	EuropaViewport viewport;
+	EuropaScissor scissor;
+	EuropaRasterizerStateInfo rasterizer;
+	// FIXME: Support multi sample
+	// FIXME: Support depth sencil
+	// FIXME: Support blending
+	// FIXME: Support dynamic state
+	EuropaPipelineLayout* layout = nullptr;
+	EuropaRenderPass* renderpass = nullptr;
+	uint32 targetSubpass = 0;
+};
+
+class EuropaGraphicsPipeline
+{
+public:
+	virtual ~EuropaGraphicsPipeline() {};
+};
+
 struct EuropaFramebufferCreateInfo
 {
+	EuropaRenderPass* renderpass;
 	std::vector<EuropaImageView*> attachments;
 	uint32 width;
 	uint32 height;
+	uint32 layers;
 };
 
 class EuropaFramebuffer
@@ -264,10 +518,24 @@ public:
 	virtual ~EuropaFramebuffer() {};
 };
 
-class EuropaShaderModule
+class EuropaCmdlist
 {
 public:
-	virtual ~EuropaShaderModule() {};
+	virtual void Begin() = 0;
+	virtual void End() = 0;
+	virtual void BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, glm::vec4 clearColor) = 0;
+	virtual void EndRenderpass() = 0;
+	virtual void BindPipeline(EuropaGraphicsPipeline* pipeline) = 0;
+	virtual void DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance) = 0;
+
+	virtual ~EuropaCmdlist() {};
+};
+
+class EuropaCommandPool
+{
+public:
+	virtual std::vector<EuropaCmdlist*> AllocateCommandBuffers(uint8 level, uint32 count) = 0;
+	virtual ~EuropaCommandPool() {};
 };
 
 class EuropaDevice
@@ -284,13 +552,16 @@ public:
 	virtual EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args) = 0;
 	virtual EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args) = 0;
 	virtual EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;
+	virtual EuropaPipelineLayout* CreatePipelineLayout(EuropaPipelineLayoutInfo& args) = 0;
+	virtual EuropaRenderPass* CreateRenderPassBuilder() = 0;
+	virtual EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args) = 0;
+	virtual EuropaCommandPool* CreateCommandPool(EuropaQueueFamilyProperties& queue) = 0;
+	virtual EuropaSemaphore* CreateSema() = 0;
+	virtual EuropaFence* CreateFence(bool createSignaled = false) = 0;
+	virtual void WaitIdle() = 0;
+	virtual void WaitForFences(uint32 numFences, EuropaFence** fences, bool waitAll = true, uint64 timeout = UINT64_MAX) = 0;
+	virtual void ResetFences(uint32 numFences, EuropaFence** fences) = 0;
 	virtual ~EuropaDevice() {};
-};
-
-class EuropaCmdlist
-{
-public:
-	virtual ~EuropaCmdlist() {};
 };
 
 class Europa

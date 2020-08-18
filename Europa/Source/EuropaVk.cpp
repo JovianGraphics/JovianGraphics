@@ -301,8 +301,9 @@ void EuropaDeviceVk::CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFam
 EuropaQueue* EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue)
 {
     EuropaQueueVk* vkQueue = new EuropaQueueVk;
+    vkQueue->m_device = this;
     
-    vkGetDeviceQueue(m_device, queue.queueIndex, 0, &vkQueue->handle);
+    vkGetDeviceQueue(m_device, queue.queueIndex, 0, &vkQueue->m_queue);
 
     return vkQueue;
 }
@@ -438,7 +439,29 @@ EuropaImageView* EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args
 
 EuropaFramebuffer* EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo& args)
 {
-    return nullptr;
+    std::vector<VkImageView> attachments;
+    for (EuropaImageView* view : args.attachments)
+    {
+        attachments.push_back(static_cast<EuropaImageViewVk*>(view)->m_view);
+    }
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = static_cast<EuropaRenderPassVk*>(args.renderpass)->m_renderPass;
+    framebufferInfo.attachmentCount = uint32(attachments.size());
+    framebufferInfo.pAttachments = attachments.data();
+    framebufferInfo.width = args.width;
+    framebufferInfo.height = args.height;
+    framebufferInfo.layers = args.layers;
+
+    EuropaFramebufferVk* fb = new EuropaFramebufferVk();
+    fb->m_device = this;
+
+    if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &fb->m_framebuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create framebuffer!");
+    }
+
+    return fb;
 }
 
 EuropaShaderModule* EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, uint32 size)
@@ -449,12 +472,251 @@ EuropaShaderModule* EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, 
     createInfo.pCode = spvBinary;
 
     EuropaShaderModuleVk* m = new EuropaShaderModuleVk();
+    m->m_device = this;
 
     if (vkCreateShaderModule(m_device, &createInfo, nullptr, &m->m_shaderModule) != VK_SUCCESS) {
         throw std::runtime_error("failed to create shader module!");
     }
 
     return m;
+}
+
+EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutInfo& args)
+{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = args.setLayoutCount;
+    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = args.pushConstantRangeCount;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+    EuropaPipelineLayoutVk* layout = new EuropaPipelineLayoutVk();
+    layout->m_device = this;
+
+    if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &layout->m_layout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+
+    return layout;
+}
+
+EuropaRenderPass* EuropaDeviceVk::CreateRenderPassBuilder()
+{
+    EuropaRenderPassVk* rp = new EuropaRenderPassVk();
+
+    rp->m_device = this;
+
+    return rp;
+}
+
+EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args)
+{
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+
+    std::vector<VkPipelineShaderStageCreateInfo> stages;
+
+    for (uint32 i = 0; i < args.shaderStageCount; i++)
+    {
+        VkPipelineShaderStageCreateInfo shaderStageInfo{};
+        shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStageInfo.stage = VkShaderStageFlagBits(args.stages[i].stage);
+        shaderStageInfo.module = static_cast<EuropaShaderModuleVk*>(args.stages[i].module)->m_shaderModule;
+        shaderStageInfo.pName = args.stages[i].entryPoint;
+
+        stages.push_back(shaderStageInfo);
+    }
+
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = args.shaderStageCount;
+    pipelineInfo.pStages = stages.data();
+
+    VkPipelineVertexInputStateCreateInfo vertexInput{};
+    vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInput.vertexBindingDescriptionCount = args.vertexInput.vertexBindingCount;
+    vertexInput.pVertexBindingDescriptions = nullptr; // FIXME
+    vertexInput.vertexAttributeDescriptionCount = args.vertexInput.attributeBindingCount;
+    vertexInput.pVertexAttributeDescriptions = nullptr; // FIXME
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VkPrimitiveTopology(args.inputAssembly.topology);
+    inputAssembly.primitiveRestartEnable = args.inputAssembly.primitiveRestartEnable;
+
+    VkViewport viewport{};
+    viewport.x = args.viewport.position.x;
+    viewport.y = args.viewport.position.y;
+    viewport.width = args.viewport.size.x;
+    viewport.height = args.viewport.size.y;
+    viewport.minDepth = args.viewport.minDepth;
+    viewport.maxDepth = args.viewport.maxDepth;
+
+    VkRect2D scissor{};
+    scissor.offset.x = args.scissor.position.x;
+    scissor.offset.y = args.scissor.position.y;
+    scissor.extent.width = args.scissor.size.x;
+    scissor.extent.height = args.scissor.size.y;
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1; // FIXME: More than 1 viewport
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.depthClampEnable = args.rasterizer.depthClamp;
+    rasterizer.rasterizerDiscardEnable = args.rasterizer.rasterizerDiscard;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = (args.rasterizer.cullFrontFace ? VK_CULL_MODE_FRONT_BIT : 0) | (args.rasterizer.cullBackFace ? VK_CULL_MODE_BACK_BIT : 0);
+    rasterizer.frontFace = (args.rasterizer.counterClockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
+    rasterizer.depthBiasEnable = VK_FALSE;
+    rasterizer.depthBiasConstantFactor = 0.0f;
+    rasterizer.depthBiasClamp = 0.0f;
+    rasterizer.depthBiasSlopeFactor = 0.0f;
+
+    // FIXME: Support multi sampling
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable = VK_FALSE;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.minSampleShading = 1.0f; // Optional
+    multisampling.pSampleMask = nullptr; // Optional
+    multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
+    multisampling.alphaToOneEnable = VK_FALSE; // Optional
+
+    // FIXME: Support blending
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+
+    // FIXME: Support more than one attachment
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.blendConstants[0] = 0.0f; // Optional
+    colorBlending.blendConstants[1] = 0.0f; // Optional
+    colorBlending.blendConstants[2] = 0.0f; // Optional
+    colorBlending.blendConstants[3] = 0.0f; // Optional
+
+    pipelineInfo.pVertexInputState = &vertexInput;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = nullptr; // Optional
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = nullptr; // Optional
+
+    pipelineInfo.layout = static_cast<EuropaPipelineLayoutVk*>(args.layout)->m_layout;
+
+    pipelineInfo.renderPass = static_cast<EuropaRenderPassVk*>(args.renderpass)->m_renderPass;
+    pipelineInfo.subpass = args.targetSubpass;
+
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+    pipelineInfo.basePipelineIndex = -1; // Optional
+
+    EuropaGraphicsPipelineVk* pipeline = new EuropaGraphicsPipelineVk();
+    pipeline->m_device = this;
+
+    if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline->m_pipeline) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create graphics pipeline!");
+    }
+
+    return pipeline;
+}
+
+EuropaCommandPool* EuropaDeviceVk::CreateCommandPool(EuropaQueueFamilyProperties& queue)
+{
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = queue.queueIndex;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    EuropaCommandPoolVk* pool = new EuropaCommandPoolVk();
+    pool->m_device = this;
+
+    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &pool->m_pool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
+
+    return pool;
+}
+
+EuropaSemaphore* EuropaDeviceVk::CreateSema()
+{
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    EuropaSemaphoreVk* semaphore = new EuropaSemaphoreVk();
+    semaphore->m_device = this;
+
+    if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &semaphore->m_sema) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create semaphores!");
+    }
+
+    return semaphore;
+}
+
+EuropaFence* EuropaDeviceVk::CreateFence(bool createSignaled)
+{
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    if (createSignaled)
+    {
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    }
+
+    EuropaFenceVk* fence = new EuropaFenceVk();
+    fence->m_device = this;
+
+    if (vkCreateFence(m_device, &fenceInfo, nullptr, &fence->m_fence) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create semaphores!");
+    }
+
+    return fence;
+}
+
+void EuropaDeviceVk::WaitIdle()
+{
+    vkDeviceWaitIdle(m_device);
+}
+
+void EuropaDeviceVk::WaitForFences(uint32 numFences, EuropaFence** _fences, bool waitAll, uint64 timeout)
+{
+    std::vector<VkFence> fences;
+
+    for (uint32 i = 0; i < numFences; i++)
+    {
+        fences.push_back(static_cast<EuropaFenceVk*>(_fences[i])->m_fence);
+    }
+
+    vkWaitForFences(m_device, numFences, fences.data(), waitAll, timeout);
+}
+
+void EuropaDeviceVk::ResetFences(uint32 numFences, EuropaFence** _fences)
+{
+    std::vector<VkFence> fences;
+
+    for (uint32 i = 0; i < numFences; i++)
+    {
+        fences.push_back(static_cast<EuropaFenceVk*>(_fences[i])->m_fence);
+    }
+
+    vkResetFences(m_device, numFences, fences.data());
 }
 
 EuropaImageViewVk::~EuropaImageViewVk()
@@ -468,6 +730,13 @@ EuropaDeviceVk::~EuropaDeviceVk()
 {
     if (m_device)
         vkDestroyDevice(m_device, nullptr);
+}
+
+uint32 EuropaSwapChainVk::AcquireNextImage(EuropaSemaphore* semaphore)
+{
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(m_device->m_device, m_swapchain, UINT64_MAX, static_cast<EuropaSemaphoreVk*>(semaphore)->m_sema, VK_NULL_HANDLE, &imageIndex);
+    return imageIndex;
 }
 
 EuropaSwapChainVk::~EuropaSwapChainVk()
@@ -734,8 +1003,265 @@ EuropaImageFormat VkFormat2EuropaImageFormat(VkFormat f)
 
 EuropaFramebufferVk::~EuropaFramebufferVk()
 {
+    vkDestroyFramebuffer(m_device->m_device, m_framebuffer, nullptr);
 }
 
 EuropaShaderModuleVk::~EuropaShaderModuleVk()
 {
+    vkDestroyShaderModule(m_device->m_device, m_shaderModule, nullptr);
+}
+
+EuropaPipelineLayoutVk::~EuropaPipelineLayoutVk()
+{
+    vkDestroyPipelineLayout(m_device->m_device, m_layout, nullptr);
+}
+
+void EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
+{
+    VkAttachmentDescription desc{};
+    desc.format = EuropaImageFormat2VkFormat(attachment.format);
+    desc.samples = VK_SAMPLE_COUNT_1_BIT;
+    desc.loadOp = VkAttachmentLoadOp(attachment.loadOp);
+    desc.storeOp = VkAttachmentStoreOp(attachment.storeOp);
+    desc.stencilLoadOp = VkAttachmentLoadOp(attachment.stencilLoadOp);
+    desc.stencilStoreOp = VkAttachmentStoreOp(attachment.stencilStoreOp);
+    desc.initialLayout = VkImageLayout(attachment.initialLayout);
+    desc.finalLayout = VkImageLayout(attachment.finalLayout);
+
+    attachments.push_back(desc);
+}
+
+void EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments)
+{
+    size_t head = attachmentReferences.size();
+
+    for (EuropaAttachmentReference& attachment : attachments)
+    {
+        VkAttachmentReference ref{};
+
+        ref.attachment = attachment.attachment;
+        ref.layout = VkImageLayout(attachment.layout);
+
+        attachmentReferences.push_back(ref);
+    }
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VkPipelineBindPoint(bindPoint);
+    subpass.colorAttachmentCount = uint32(attachments.size());
+    subpass.pColorAttachments = &attachmentReferences[head];
+
+    subpasses.push_back(subpass);
+}
+
+void EuropaRenderPassVk::AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess)
+{
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = srcPass == SubpassExternal ? VK_SUBPASS_EXTERNAL : srcPass;
+    dependency.dstSubpass = dstPass == SubpassExternal ? VK_SUBPASS_EXTERNAL : dstPass;
+    dependency.srcStageMask = VkPipelineStageFlags(srcStage);
+    dependency.srcAccessMask = VkAccessFlags(srcAccess);
+    dependency.dstStageMask = VkPipelineStageFlags(dstStage);
+    dependency.dstAccessMask = VkAccessFlags(dstAccess);
+
+    dependencies.push_back(dependency);
+}
+
+void EuropaRenderPassVk::CreateRenderpass()
+{
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = uint32(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = uint32(subpasses.size());
+    renderPassInfo.pSubpasses = subpasses.data();
+    renderPassInfo.dependencyCount = uint32(dependencies.size());
+    renderPassInfo.pDependencies = dependencies.data();
+
+    if (vkCreateRenderPass(m_device->m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create render pass!");
+    }
+}
+
+EuropaRenderPassVk::~EuropaRenderPassVk()
+{
+    vkDestroyRenderPass(m_device->m_device, m_renderPass, nullptr);
+}
+
+EuropaGraphicsPipelineVk::~EuropaGraphicsPipelineVk()
+{
+    vkDestroyPipeline(m_device->m_device, m_pipeline, nullptr);
+}
+
+std::vector<EuropaCmdlist*> EuropaCommandPoolVk::AllocateCommandBuffers(uint8 level, uint32 count)
+{
+    std::vector<VkCommandBuffer> commandBuffers;
+    commandBuffers.resize(count);
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = m_pool;
+    allocInfo.level = level == 0 ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+    allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+
+    if (vkAllocateCommandBuffers(m_device->m_device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+
+    std::vector<EuropaCmdlist*> cmdlists;
+    for (VkCommandBuffer buffer : commandBuffers)
+    {
+        EuropaCmdlistVk* cmdlist = new EuropaCmdlistVk();
+        cmdlist->m_device = m_device;
+        cmdlist->m_pool = this;
+        cmdlist->m_cmdlist = buffer;
+
+        cmdlists.push_back(cmdlist);
+    }
+
+    return cmdlists;
+}
+
+EuropaCommandPoolVk::~EuropaCommandPoolVk()
+{
+    vkDestroyCommandPool(m_device->m_device, m_pool, nullptr);
+}
+
+void EuropaCmdlistVk::Begin()
+{
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0; // Optional
+    beginInfo.pInheritanceInfo = nullptr; // Optional
+
+    if (vkBeginCommandBuffer(m_cmdlist, &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("failed to begin recording command buffer!");
+    }
+}
+
+void EuropaCmdlistVk::End()
+{
+    if (vkEndCommandBuffer(m_cmdlist) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+}
+
+void EuropaCmdlistVk::BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, glm::vec4 clearColor)
+{
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = static_cast<EuropaRenderPassVk*>(renderpass)->m_renderPass;
+    renderPassInfo.framebuffer = static_cast<EuropaFramebufferVk*>(framebuffer)->m_framebuffer;
+    renderPassInfo.renderArea.offset = { int32(offset.x), int32(offset.y) };
+    renderPassInfo.renderArea.extent = { uint32(extent.x), uint32(extent.y) };
+
+    VkClearValue c = { clearColor.r, clearColor.g, clearColor.b, clearColor.a };
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &c;
+
+    vkCmdBeginRenderPass(m_cmdlist, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void EuropaCmdlistVk::EndRenderpass()
+{
+    vkCmdEndRenderPass(m_cmdlist);
+}
+
+void EuropaCmdlistVk::BindPipeline(EuropaGraphicsPipeline* pipeline)
+{
+    vkCmdBindPipeline(m_cmdlist, VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<EuropaGraphicsPipelineVk*>(pipeline)->m_pipeline);
+}
+
+void EuropaCmdlistVk::DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance)
+{
+    vkCmdDraw(m_cmdlist, vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+EuropaSemaphoreVk::~EuropaSemaphoreVk()
+{
+    vkDestroySemaphore(m_device->m_device, m_sema, nullptr);
+}
+
+void EuropaQueueVk::Submit(
+    uint32 waitSemaphoreCount, EuropaSemaphore** _waitSemaphores, EuropaPipelineStage* waitStages,
+    uint32 cmdlistCount, EuropaCmdlist** cmdlists,
+    uint32 signalSemaphoreCount, EuropaSemaphore** _signalSemaphores, EuropaFence* fence)
+{
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    std::vector<VkSemaphore> waitSemaphores;
+
+    for (uint32 i = 0; i < waitSemaphoreCount; i++)
+    {
+        waitSemaphores.push_back(static_cast<EuropaSemaphoreVk*>(_waitSemaphores[i])->m_sema);
+    }
+
+    submitInfo.waitSemaphoreCount = waitSemaphoreCount;
+    submitInfo.pWaitSemaphores = waitSemaphores.data();
+    submitInfo.pWaitDstStageMask = reinterpret_cast<VkPipelineStageFlags*>(waitStages);
+
+    std::vector<VkCommandBuffer> cmdbuffers;
+
+    for (uint32 i = 0; i < cmdlistCount; i++)
+    {
+        cmdbuffers.push_back(static_cast<EuropaCmdlistVk*>(cmdlists[i])->m_cmdlist);
+    }
+
+    submitInfo.commandBufferCount = cmdlistCount;
+    submitInfo.pCommandBuffers = cmdbuffers.data();
+
+    std::vector<VkSemaphore> signalSemaphores;
+
+    for (uint32 i = 0; i < signalSemaphoreCount; i++)
+    {
+        signalSemaphores.push_back(static_cast<EuropaSemaphoreVk*>(_signalSemaphores[i])->m_sema);
+    }
+
+    submitInfo.signalSemaphoreCount = signalSemaphoreCount;
+    submitInfo.pSignalSemaphores = signalSemaphores.data();
+
+    if (vkQueueSubmit(m_queue, 1, &submitInfo, fence ? static_cast<EuropaFenceVk*>(fence)->m_fence : VK_NULL_HANDLE) != VK_SUCCESS) {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+}
+
+void EuropaQueueVk::Present(uint32 waitSemaphoreCount, EuropaSemaphore** _waitSemaphores, uint32 swapchainCount, EuropaSwapChain** _swapchains, uint32 imageIndex)
+{
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    std::vector<VkSemaphore> waitSemaphores;
+
+    for (uint32 i = 0; i < waitSemaphoreCount; i++)
+    {
+        waitSemaphores.push_back(static_cast<EuropaSemaphoreVk*>(_waitSemaphores[i])->m_sema);
+    }
+
+    presentInfo.waitSemaphoreCount = waitSemaphoreCount;
+    presentInfo.pWaitSemaphores = waitSemaphores.data();
+
+    std::vector<VkSwapchainKHR> swapchains;
+
+    for (uint32 i = 0; i < waitSemaphoreCount; i++)
+    {
+        swapchains.push_back(static_cast<EuropaSwapChainVk*>(_swapchains[i])->m_swapchain);
+    }
+
+    presentInfo.swapchainCount = swapchainCount;
+    presentInfo.pSwapchains = swapchains.data();
+
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;
+
+    vkQueuePresentKHR(m_queue, &presentInfo);
+}
+
+void EuropaQueueVk::WaitIdle()
+{
+    vkQueueWaitIdle(m_queue);
+}
+
+EuropaFenceVk::~EuropaFenceVk()
+{
+    vkDestroyFence(m_device->m_device, m_fence, nullptr);
 }
