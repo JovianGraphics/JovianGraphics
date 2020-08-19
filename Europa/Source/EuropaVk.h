@@ -128,6 +128,7 @@ public:
 		uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, EuropaPipelineStage* waitStages,
 		uint32 cmdlistCount, EuropaCmdlist** cmdlists,
 		uint32 signalSemaphoreCount, EuropaSemaphore** signalSemaphores, EuropaFence* fence = nullptr);
+	void Submit(EuropaCmdlist* cmdlist);
 	void Present(uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, uint32 swapchainCount, EuropaSwapChain** swapchains, uint32 imageIndex);
 	void WaitIdle();
 

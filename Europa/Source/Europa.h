@@ -373,6 +373,7 @@ public:
 		uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, EuropaPipelineStage* waitStages,
 		uint32 cmdlistCount, EuropaCmdlist** cmdlists,
 		uint32 signalSemaphoreCount, EuropaSemaphore** signalSemaphores, EuropaFence* fence = nullptr) = 0;
+	virtual void Submit(EuropaCmdlist* cmdlist) = 0;
 	virtual void Present(uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, uint32 swapchainCount, EuropaSwapChain** swapchains, uint32 imageIndex) = 0;
 	virtual void WaitIdle() = 0;
 

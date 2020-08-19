@@ -206,7 +206,7 @@ int AppMain(IoSurface& s)
 		copyCmdlist->CopyBuffer(vertexBuffer, vertexUploadBuffer, vertexBufferInfo.size);
 		copyCmdlist->End();
 
-		cmdQueue->Submit(0, nullptr, nullptr, 1, &copyCmdlist, 0, nullptr);
+		cmdQueue->Submit(copyCmdlist);
 		cmdQueue->WaitIdle();
 
 		GanymedeDelete(vertexUploadBuffer);

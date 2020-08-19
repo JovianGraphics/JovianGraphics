@@ -1326,6 +1326,22 @@ void EuropaQueueVk::Submit(
     }
 }
 
+void EuropaQueueVk::Submit(EuropaCmdlist* cmdlist)
+{
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pWaitSemaphores = nullptr;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &static_cast<EuropaCmdlistVk*>(cmdlist)->m_cmdlist;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.pSignalSemaphores = nullptr;
+
+    if (vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE)) {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+}
+
 void EuropaQueueVk::Present(uint32 waitSemaphoreCount, EuropaSemaphore** _waitSemaphores, uint32 swapchainCount, EuropaSwapChain** _swapchains, uint32 imageIndex)
 {
     VkPresentInfoKHR presentInfo{};
