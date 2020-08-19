@@ -109,7 +109,7 @@ int AppMain(IoSurface& s)
 		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
 	};
 
-	const std::vector<uint32> indices = {
+	const std::vector<uint16> indices = {
 		0, 1, 2, 2, 3, 0
 	};
 
@@ -243,7 +243,7 @@ int AppMain(IoSurface& s)
 		cmdlist->BeginRenderpass(renderpass, framebuffers[i], glm::ivec2(0), glm::uvec2(swapChainCaps.surfaceCaps.currentExtent), 1, glm::vec4(0.0, 0.0, 0.0, 1.0));
 		cmdlist->BindPipeline(pipeline);
 		cmdlist->BindVertexBuffer(vertexBuffer, 0, 0);
-		cmdlist->BindIndexBuffer(indexBuffer, 0, EuropaImageFormat::R32UI);
+		cmdlist->BindIndexBuffer(indexBuffer, 0, EuropaImageFormat::R16UI);
 		cmdlist->DrawIndexed(6, 1, 0, 0, 0);
 		cmdlist->EndRenderpass();
 		cmdlist->End();
