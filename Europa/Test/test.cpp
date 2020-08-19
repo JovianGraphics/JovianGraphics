@@ -103,9 +103,14 @@ int AppMain(IoSurface& s)
 	}
 
 	const std::vector<Vertex> vertices = {
-		{{0.0f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
 		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	};
+
+	const std::vector<uint32> indices = {
+		0, 1, 2, 2, 3, 0
 	};
 
 	EuropaVertexInputBindingInfo binding;
@@ -188,13 +193,31 @@ int AppMain(IoSurface& s)
 	vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferDst);
 	vertexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
 	EuropaBuffer* vertexBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
-	vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferSrc);
+	vertexBufferInfo.usage = EuropaBufferUsageTransferSrc;
 	vertexBufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
 	EuropaBuffer* vertexUploadBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
 
-	Vertex* mappedBuffer = vertexUploadBuffer->Map<Vertex>();
-	memcpy(mappedBuffer, vertices.data(), vertexBufferInfo.size);
-	vertexUploadBuffer->Unmap();
+	{
+		Vertex* mappedBuffer = vertexUploadBuffer->Map<Vertex>();
+		memcpy(mappedBuffer, vertices.data(), vertexBufferInfo.size);
+		vertexUploadBuffer->Unmap();
+	}
+
+	EuropaBufferInfo indexBufferInfo;
+	indexBufferInfo.exclusive = true;
+	indexBufferInfo.size = uint32(indices.size() * sizeof(uint32));
+	indexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageIndex | EuropaBufferUsageTransferDst);
+	indexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
+	EuropaBuffer* indexBuffer = selectedDevice->CreateBuffer(indexBufferInfo);
+	indexBufferInfo.usage = EuropaBufferUsageTransferSrc;
+	indexBufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
+	EuropaBuffer* indexUploadBuffer = selectedDevice->CreateBuffer(indexBufferInfo);
+
+	{
+		uint32* mappedBuffer = indexUploadBuffer->Map<uint32>();
+		memcpy(mappedBuffer, indices.data(), indexBufferInfo.size);
+		indexUploadBuffer->Unmap();
+	}
 
 	EuropaCommandPool* cmdpool = selectedDevice->CreateCommandPool(requiredQueues[0]);
 
@@ -204,6 +227,7 @@ int AppMain(IoSurface& s)
 		EuropaCmdlist* copyCmdlist = cmdpool->AllocateCommandBuffers(0, 1)[0];
 		copyCmdlist->Begin();
 		copyCmdlist->CopyBuffer(vertexBuffer, vertexUploadBuffer, vertexBufferInfo.size);
+		copyCmdlist->CopyBuffer(indexBuffer, indexUploadBuffer, indexBufferInfo.size);
 		copyCmdlist->End();
 
 		cmdQueue->Submit(copyCmdlist);
@@ -218,8 +242,9 @@ int AppMain(IoSurface& s)
 		cmdlist->Begin();
 		cmdlist->BeginRenderpass(renderpass, framebuffers[i], glm::ivec2(0), glm::uvec2(swapChainCaps.surfaceCaps.currentExtent), 1, glm::vec4(0.0, 0.0, 0.0, 1.0));
 		cmdlist->BindPipeline(pipeline);
-		cmdlist->BindVertexBuffer(vertexBuffer, 0);
-		cmdlist->DrawInstanced(3, 1, 0, 0);
+		cmdlist->BindVertexBuffer(vertexBuffer, 0, 0);
+		cmdlist->BindIndexBuffer(indexBuffer, 0, EuropaImageFormat::R32UI);
+		cmdlist->DrawIndexed(6, 1, 0, 0, 0);
 		cmdlist->EndRenderpass();
 		cmdlist->End();
 		i++;

@@ -1248,16 +1248,25 @@ void EuropaCmdlistVk::DrawInstanced(uint32 vertexCount, uint32 instanceCount, ui
     vkCmdDraw(m_cmdlist, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void EuropaCmdlistVk::BindVertexBuffer(EuropaBuffer* _buffer, uint32 binding)
+void EuropaCmdlistVk::DrawIndexed(uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 firstVertex, uint32 firstInstance)
+{
+    vkCmdDrawIndexed(m_cmdlist, indexCount, instanceCount, firstIndex, firstVertex, firstInstance);
+}
+
+void EuropaCmdlistVk::BindVertexBuffer(EuropaBuffer* _buffer, uint32 offset, uint32 binding)
 {
     EuropaBufferVk* buffer = static_cast<EuropaBufferVk*>(_buffer);
 
-    VmaAllocationInfo vmaInfo;
-    vmaGetAllocationInfo(m_device->m_allocator, buffer->m_allocation, &vmaInfo);
-
     VkBuffer vertexBuffers[] = { buffer->m_buffer };
-    VkDeviceSize offsets[] = { vmaInfo.offset };
+    VkDeviceSize offsets[] = { offset };
     vkCmdBindVertexBuffers(m_cmdlist, binding, 1, vertexBuffers, offsets);
+}
+
+void EuropaCmdlistVk::BindIndexBuffer(EuropaBuffer* _buffer, uint32 offset, EuropaImageFormat indexFormat)
+{
+    EuropaBufferVk* buffer = static_cast<EuropaBufferVk*>(_buffer);
+
+    vkCmdBindIndexBuffer(m_cmdlist, buffer->m_buffer, offset, (indexFormat == EuropaImageFormat::R16UI ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32));
 }
 
 void EuropaCmdlistVk::CopyBuffer(EuropaBuffer* _dst, EuropaBuffer* _src, uint32 size, uint32 srcOffset, uint32 dstOffset)
@@ -1265,14 +1274,10 @@ void EuropaCmdlistVk::CopyBuffer(EuropaBuffer* _dst, EuropaBuffer* _src, uint32 
     EuropaBufferVk* dst = static_cast<EuropaBufferVk*>(_dst);
     EuropaBufferVk* src = static_cast<EuropaBufferVk*>(_src);
 
-    VmaAllocationInfo dstInfo, srcInfo;
-    vmaGetAllocationInfo(m_device->m_allocator, dst->m_allocation, &dstInfo);
-    vmaGetAllocationInfo(m_device->m_allocator, src->m_allocation, &srcInfo);
-
     VkBufferCopy copy{};
     copy.size = size;
-    copy.srcOffset = srcOffset + srcInfo.offset;
-    copy.dstOffset = dstOffset + dstInfo.offset;
+    copy.srcOffset = srcOffset;
+    copy.dstOffset = dstOffset;
 
     vkCmdCopyBuffer(m_cmdlist, src->m_buffer, dst->m_buffer, 1, &copy);
 }

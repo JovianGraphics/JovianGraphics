@@ -587,7 +587,9 @@ public:
 	virtual void EndRenderpass() = 0;
 	virtual void BindPipeline(EuropaGraphicsPipeline* pipeline) = 0;
 	virtual void DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance) = 0;
-	virtual void BindVertexBuffer(EuropaBuffer* buffer, uint32 binding) = 0;
+	virtual void DrawIndexed(uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 firstVertex, uint32 firstInstance) = 0;
+	virtual void BindVertexBuffer(EuropaBuffer* buffer, uint32 offset, uint32 binding) = 0;
+	virtual void BindIndexBuffer(EuropaBuffer* buffer, uint32 offset, EuropaImageFormat indexFormat) = 0;
 	virtual void CopyBuffer(EuropaBuffer* dst, EuropaBuffer* src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0) = 0;
 
 	virtual ~EuropaCmdlist() {};
