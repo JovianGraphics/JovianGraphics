@@ -101,8 +101,8 @@ EuropaVk::EuropaVk()
 
     // Enable validation layers if in Debug mode
     std::vector<const char*> validationLayers = {};
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 #ifdef _DEBUG
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     {
         validationLayers.push_back("VK_LAYER_KHRONOS_validation");
     
@@ -172,7 +172,7 @@ std::vector<EuropaDevice*> EuropaVk::GetDevices()
 
     for (VkPhysicalDevice& pDevice : vkPhyDevices)
     {
-        EuropaDeviceVk* device = new EuropaDeviceVk;
+        EuropaDeviceVk* device = new EuropaDeviceVk(m_instance);
         device->m_phyDevice = pDevice;
 
         devices.push_back((EuropaDevice*)(device));
@@ -296,6 +296,18 @@ void EuropaDeviceVk::CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFam
     if (vkCreateDevice(m_phyDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
         throw std::runtime_error("failed to create logical device!");
     }
+
+    // Create allocator
+    VmaAllocatorCreateInfo vmaCreateInfo{};
+    vmaCreateInfo.flags = 0;
+    vmaCreateInfo.device = m_device;
+    vmaCreateInfo.physicalDevice = m_phyDevice;
+    vmaCreateInfo.frameInUseCount = 3;
+    vmaCreateInfo.pHeapSizeLimit = nullptr;
+    vmaCreateInfo.pVulkanFunctions = nullptr;
+    vmaCreateInfo.instance = m_instance;
+
+    vmaCreateAllocator(&vmaCreateInfo, &m_allocator);
 }
 
 EuropaQueue* EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue)
@@ -531,12 +543,43 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
     pipelineInfo.stageCount = args.shaderStageCount;
     pipelineInfo.pStages = stages.data();
 
+    std::vector<VkVertexInputBindingDescription> bindings;
+
+    if (args.vertexInput.vertexBindings)
+    {
+        for (uint32 i = 0; i < args.vertexInput.vertexBindingCount; i++)
+        {
+            VkVertexInputBindingDescription bindingDescription{};
+            bindingDescription.binding = args.vertexInput.vertexBindings[i].binding;
+            bindingDescription.stride = args.vertexInput.vertexBindings[i].stride;
+            bindingDescription.inputRate = (args.vertexInput.vertexBindings[i].perInstance ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX);
+
+            bindings.push_back(bindingDescription);
+        }
+    }
+
+    std::vector<VkVertexInputAttributeDescription> attributes;
+
+    if (args.vertexInput.attributeBindings)
+    {
+        for (uint32 i = 0; i < args.vertexInput.attributeBindingCount; i++)
+        {
+            VkVertexInputAttributeDescription attributeDescription{};
+            attributeDescription.binding = args.vertexInput.attributeBindings[i].binding;
+            attributeDescription.location = args.vertexInput.attributeBindings[i].location;
+            attributeDescription.offset = args.vertexInput.attributeBindings[i].offset;
+            attributeDescription.format = EuropaImageFormat2VkFormat(args.vertexInput.attributeBindings[i].format);
+
+            attributes.push_back(attributeDescription);
+        }
+    }
+
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInput.vertexBindingDescriptionCount = args.vertexInput.vertexBindingCount;
-    vertexInput.pVertexBindingDescriptions = nullptr; // FIXME
+    vertexInput.pVertexBindingDescriptions = (args.vertexInput.vertexBindings ? bindings.data() : nullptr);
     vertexInput.vertexAttributeDescriptionCount = args.vertexInput.attributeBindingCount;
-    vertexInput.pVertexAttributeDescriptions = nullptr; // FIXME
+    vertexInput.pVertexAttributeDescriptions = (args.vertexInput.attributeBindings ? attributes.data() : nullptr);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -719,11 +762,36 @@ void EuropaDeviceVk::ResetFences(uint32 numFences, EuropaFence** _fences)
     vkResetFences(m_device, numFences, fences.data());
 }
 
+EuropaBuffer* EuropaDeviceVk::CreateBuffer(EuropaBufferInfo& args)
+{
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = args.size;
+    bufferInfo.usage = VkBufferUsageFlagBits(args.usage);
+    bufferInfo.sharingMode = (args.exclusive ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT);
+    
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VmaMemoryUsage(args.memoryUsage);
+
+    EuropaBufferVk* buffer = new EuropaBufferVk();
+    buffer->m_device = this;
+    buffer->m_info = args;
+
+    vmaCreateBuffer(m_allocator, &bufferInfo, &allocInfo, &buffer->m_buffer, &buffer->m_allocation, nullptr);
+    
+    return buffer;
+}
+
 EuropaImageViewVk::~EuropaImageViewVk()
 {
     EuropaDeviceVk* device = reinterpret_cast<EuropaDeviceVk*>(m_device);
 
     vkDestroyImageView(device->m_device, m_view, nullptr);
+}
+
+EuropaDeviceVk::EuropaDeviceVk(VkInstance& instance)
+    : m_instance(instance)
+{
 }
 
 EuropaDeviceVk::~EuropaDeviceVk()
@@ -1016,7 +1084,7 @@ EuropaPipelineLayoutVk::~EuropaPipelineLayoutVk()
     vkDestroyPipelineLayout(m_device->m_device, m_layout, nullptr);
 }
 
-void EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
+uint32 EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
 {
     VkAttachmentDescription desc{};
     desc.format = EuropaImageFormat2VkFormat(attachment.format);
@@ -1029,9 +1097,11 @@ void EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
     desc.finalLayout = VkImageLayout(attachment.finalLayout);
 
     attachments.push_back(desc);
+
+    return uint32(attachments.size() - 1);
 }
 
-void EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments)
+uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments)
 {
     size_t head = attachmentReferences.size();
 
@@ -1051,6 +1121,8 @@ void EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vect
     subpass.pColorAttachments = &attachmentReferences[head];
 
     subpasses.push_back(subpass);
+
+    return subpasses.size() - 1;
 }
 
 void EuropaRenderPassVk::AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess)
@@ -1176,6 +1248,40 @@ void EuropaCmdlistVk::DrawInstanced(uint32 vertexCount, uint32 instanceCount, ui
     vkCmdDraw(m_cmdlist, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
+void EuropaCmdlistVk::DrawIndexed(uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 firstVertex, uint32 firstInstance)
+{
+    vkCmdDrawIndexed(m_cmdlist, indexCount, instanceCount, firstIndex, firstVertex, firstInstance);
+}
+
+void EuropaCmdlistVk::BindVertexBuffer(EuropaBuffer* _buffer, uint32 offset, uint32 binding)
+{
+    EuropaBufferVk* buffer = static_cast<EuropaBufferVk*>(_buffer);
+
+    VkBuffer vertexBuffers[] = { buffer->m_buffer };
+    VkDeviceSize offsets[] = { offset };
+    vkCmdBindVertexBuffers(m_cmdlist, binding, 1, vertexBuffers, offsets);
+}
+
+void EuropaCmdlistVk::BindIndexBuffer(EuropaBuffer* _buffer, uint32 offset, EuropaImageFormat indexFormat)
+{
+    EuropaBufferVk* buffer = static_cast<EuropaBufferVk*>(_buffer);
+
+    vkCmdBindIndexBuffer(m_cmdlist, buffer->m_buffer, offset, (indexFormat == EuropaImageFormat::R16UI ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32));
+}
+
+void EuropaCmdlistVk::CopyBuffer(EuropaBuffer* _dst, EuropaBuffer* _src, uint32 size, uint32 srcOffset, uint32 dstOffset)
+{
+    EuropaBufferVk* dst = static_cast<EuropaBufferVk*>(_dst);
+    EuropaBufferVk* src = static_cast<EuropaBufferVk*>(_src);
+
+    VkBufferCopy copy{};
+    copy.size = size;
+    copy.srcOffset = srcOffset;
+    copy.dstOffset = dstOffset;
+
+    vkCmdCopyBuffer(m_cmdlist, src->m_buffer, dst->m_buffer, 1, &copy);
+}
+
 EuropaSemaphoreVk::~EuropaSemaphoreVk()
 {
     vkDestroySemaphore(m_device->m_device, m_sema, nullptr);
@@ -1225,6 +1331,22 @@ void EuropaQueueVk::Submit(
     }
 }
 
+void EuropaQueueVk::Submit(EuropaCmdlist* cmdlist)
+{
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pWaitSemaphores = nullptr;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &static_cast<EuropaCmdlistVk*>(cmdlist)->m_cmdlist;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.pSignalSemaphores = nullptr;
+
+    if (vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE)) {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+}
+
 void EuropaQueueVk::Present(uint32 waitSemaphoreCount, EuropaSemaphore** _waitSemaphores, uint32 swapchainCount, EuropaSwapChain** _swapchains, uint32 imageIndex)
 {
     VkPresentInfoKHR presentInfo{};
@@ -1264,4 +1386,26 @@ void EuropaQueueVk::WaitIdle()
 EuropaFenceVk::~EuropaFenceVk()
 {
     vkDestroyFence(m_device->m_device, m_fence, nullptr);
+}
+
+void* EuropaBufferVk::MapT()
+{
+    void* mappedData = nullptr;
+    vmaMapMemory(m_device->m_allocator, m_allocation, &mappedData);
+    return mappedData;
+}
+
+void EuropaBufferVk::Unmap()
+{
+    vmaUnmapMemory(m_device->m_allocator, m_allocation);
+}
+
+EuropaBufferInfo EuropaBufferVk::GetInfo()
+{
+    return m_info;
+}
+
+EuropaBufferVk::~EuropaBufferVk()
+{
+    vmaDestroyBuffer(m_device->m_allocator, m_buffer, m_allocation);
 }
