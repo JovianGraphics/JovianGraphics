@@ -493,13 +493,29 @@ EuropaShaderModule* EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, 
     return m;
 }
 
+EuropaDescriptorSetLayout* EuropaDeviceVk::CreateDescriptorSetLayout()
+{
+    EuropaDescriptorSetLayoutVk* layout = new EuropaDescriptorSetLayoutVk();
+
+    layout->m_device = this;
+
+    return layout;
+}
+
 EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutInfo& args)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 
+    std::vector<VkDescriptorSetLayout> setLayouts;
+
+    for (uint32 i = 0; i < args.setLayoutCount; i++)
+    {
+        setLayouts.push_back(static_cast<EuropaDescriptorSetLayoutVk*>(args.descSetLayouts[i])->m_setLayout);
+    }
+
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = args.setLayoutCount;
-    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.pSetLayouts = args.setLayoutCount ? setLayouts.data() : nullptr;
     pipelineLayoutInfo.pushConstantRangeCount = args.pushConstantRangeCount;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -1408,4 +1424,40 @@ EuropaBufferInfo EuropaBufferVk::GetInfo()
 EuropaBufferVk::~EuropaBufferVk()
 {
     vmaDestroyBuffer(m_device->m_allocator, m_buffer, m_allocation);
+}
+
+void EuropaDescriptorSetLayoutVk::Build()
+{
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = m_bindings.size();
+    layoutInfo.pBindings = m_bindings.data();
+
+    if (vkCreateDescriptorSetLayout(m_device->m_device, &layoutInfo, nullptr, &m_setLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor set layout!");
+    }
+}
+
+void EuropaDescriptorSetLayoutVk::Clear()
+{
+    m_bindings.clear();
+    vkDestroyDescriptorSetLayout(m_device->m_device, m_setLayout, nullptr);
+    m_setLayout = VK_NULL_HANDLE;
+}
+
+void EuropaDescriptorSetLayoutVk::UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    layoutBinding.binding = binding;
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    layoutBinding.descriptorCount = count;
+    layoutBinding.stageFlags = VkShaderStageFlagBits(stage);
+    layoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    m_bindings.push_back(layoutBinding);
+}
+
+EuropaDescriptorSetLayoutVk::~EuropaDescriptorSetLayoutVk()
+{
+    Clear();
 }

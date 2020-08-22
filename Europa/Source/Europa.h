@@ -476,11 +476,21 @@ struct EuropaRasterizerStateInfo
 	bool counterClockwise = true;
 };
 
+class EuropaDescriptorSetLayout
+{
+public:
+	virtual void Build() = 0;
+	virtual void Clear() = 0;
+	virtual void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
+
+	virtual ~EuropaDescriptorSetLayout() {};
+};
+
 struct EuropaPipelineLayoutInfo
 {
 	uint32 setLayoutCount;
 	uint32 pushConstantRangeCount;
-	// FIXME: Support more than 0 on these values
+	EuropaDescriptorSetLayout** descSetLayouts;
 };
 
 class EuropaPipelineLayout
@@ -616,6 +626,7 @@ public:
 	virtual EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args) = 0;
 	virtual EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args) = 0;
 	virtual EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;
+	virtual EuropaDescriptorSetLayout* CreateDescriptorSetLayout() = 0;
 	virtual EuropaPipelineLayout* CreatePipelineLayout(EuropaPipelineLayoutInfo& args) = 0;
 	virtual EuropaRenderPass* CreateRenderPassBuilder() = 0;
 	virtual EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args) = 0;

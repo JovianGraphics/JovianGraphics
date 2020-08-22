@@ -44,6 +44,7 @@ public:
 	EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args);
 	EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args);
 	EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size);
+	EuropaDescriptorSetLayout* CreateDescriptorSetLayout();
 	EuropaPipelineLayout* CreatePipelineLayout(EuropaPipelineLayoutInfo& args);
 	EuropaRenderPass* CreateRenderPassBuilder();
 	EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args);
@@ -182,6 +183,21 @@ public:
 	VkFence m_fence;
 
 	virtual ~EuropaFenceVk();
+};
+
+class EuropaDescriptorSetLayoutVk : public EuropaDescriptorSetLayout
+{
+public:
+	EuropaDeviceVk* m_device;
+	
+	std::vector<VkDescriptorSetLayoutBinding> m_bindings;
+	VkDescriptorSetLayout m_setLayout;
+
+	void Build();
+	void Clear();
+	void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage);
+
+	~EuropaDescriptorSetLayoutVk();
 };
 
 class EuropaPipelineLayoutVk : public EuropaPipelineLayout
