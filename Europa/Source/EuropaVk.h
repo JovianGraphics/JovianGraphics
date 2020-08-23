@@ -29,6 +29,7 @@ class EuropaDeviceVk : public EuropaDevice
 public:
 	VkInstance& m_instance;
 	VmaAllocator m_allocator;
+	VkPhysicalDeviceProperties m_properties;
 
 	VkPhysicalDevice m_phyDevice = nullptr;
 	VkDevice m_device = nullptr;
@@ -45,6 +46,7 @@ public:
 	EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args);
 	EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size);
 	EuropaDescriptorSetLayout* CreateDescriptorSetLayout();
+	EuropaDescriptorPool* CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets);
 	EuropaPipelineLayout* CreatePipelineLayout(EuropaPipelineLayoutInfo& args);
 	EuropaRenderPass* CreateRenderPassBuilder();
 	EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args);
@@ -55,6 +57,8 @@ public:
 	void WaitForFences(uint32 numFences, EuropaFence** fences, bool waitAll = true, uint64 timeout = UINT64_MAX);
 	void ResetFences(uint32 numFences, EuropaFence** fences);
 	EuropaBuffer* CreateBuffer(EuropaBufferInfo& args);
+
+	uint32 GetMinUniformBufferOffsetAlignment();
 
 	EuropaDeviceVk(VkInstance& instance);
 	~EuropaDeviceVk();
@@ -136,6 +140,28 @@ public:
 	~EuropaQueueVk() {};
 };
 
+class EuropaDescriptorSetVk : public EuropaDescriptorSet
+{
+public:
+	EuropaDeviceVk* m_device;
+	VkDescriptorSet m_set;
+
+	void SetUniformBuffer(EuropaBuffer* buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement);
+
+	~EuropaDescriptorSetVk() {};
+};
+
+class EuropaDescriptorPoolVk : public EuropaDescriptorPool
+{
+public:
+	EuropaDeviceVk* m_device;
+	VkDescriptorPool m_pool;
+
+	EuropaDescriptorSet* AllocateDescriptorSet(EuropaDescriptorSetLayout* layout);
+
+	~EuropaDescriptorPoolVk();
+};
+
 class EuropaCommandPoolVk : public EuropaCommandPool
 {
 public:
@@ -163,6 +189,7 @@ public:
 	void BindVertexBuffer(EuropaBuffer* buffer, uint32 offset, uint32 binding);
 	void BindIndexBuffer(EuropaBuffer* buffer, uint32 offset, EuropaImageFormat indexFormat);
 	void CopyBuffer(EuropaBuffer* dst, EuropaBuffer* src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0);
+	void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout* layout, EuropaDescriptorSet* descSet, uint32 set = 0);
 
 	~EuropaCmdlistVk() {};
 };

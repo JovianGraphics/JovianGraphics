@@ -19,6 +19,12 @@ typedef uint64_t uint64;
 
 void GanymedeOutputDebugString(const char* str);
 
+template <typename T> T alignUp(T x, T a)
+{
+    T r = x % a;
+    return r ? x + (a - r) : x;
+}
+
 // http://madebyevan.com/obscure-cpp-features/?viksra
 namespace __hidden__
 {

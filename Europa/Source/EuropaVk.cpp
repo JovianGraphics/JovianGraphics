@@ -174,6 +174,8 @@ std::vector<EuropaDevice*> EuropaVk::GetDevices()
     {
         EuropaDeviceVk* device = new EuropaDeviceVk(m_instance);
         device->m_phyDevice = pDevice;
+        
+        vkGetPhysicalDeviceProperties(pDevice, &device->m_properties);
 
         devices.push_back((EuropaDevice*)(device));
     }
@@ -202,24 +204,18 @@ EuropaSurface* EuropaVk::CreateSurface(IoSurface* _ioSurface)
 
 std::string EuropaDeviceVk::GetName()
 {
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(m_phyDevice, &deviceProperties);
-
-    return std::string(deviceProperties.deviceName);
+    return std::string(m_properties.deviceName);
 }
 
 EuropaDeviceType EuropaDeviceVk::GetType()
 {
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(m_phyDevice, &deviceProperties);
-
-    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+    if (m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         return EuropaDeviceType::Discrete;
-    else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+    else if (m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
         return EuropaDeviceType::Integrated;
-    else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+    else if (m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
         return EuropaDeviceType::Virtual;
-    else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
+    else if (m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
         return EuropaDeviceType::CPU;
     else
         return EuropaDeviceType::Virtual;
@@ -500,6 +496,115 @@ EuropaDescriptorSetLayout* EuropaDeviceVk::CreateDescriptorSetLayout()
     layout->m_device = this;
 
     return layout;
+}
+
+EuropaDescriptorPool* EuropaDeviceVk::CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets)
+{
+    std::vector<VkDescriptorPoolSize> poolSizes;
+    
+    if (sizes.Sampler)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+        poolSize.descriptorCount = sizes.Sampler;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.CombinedImageSampler)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSize.descriptorCount = sizes.CombinedImageSampler;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.SampledImage)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        poolSize.descriptorCount = sizes.SampledImage;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.StorageImage)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSize.descriptorCount = sizes.StorageImage;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.UniformTexel)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = sizes.UniformTexel;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.StorageTexel)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+        poolSize.descriptorCount = sizes.StorageTexel;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.Uniform)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = sizes.Uniform;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.Storage)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSize.descriptorCount = sizes.Storage;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.UniformDynamic)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+        poolSize.descriptorCount = sizes.UniformDynamic;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.StorageDynamic)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+        poolSize.descriptorCount = sizes.StorageDynamic;
+        poolSizes.push_back(poolSize);
+    }
+
+    if (sizes.InputAttachments)
+    {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        poolSize.descriptorCount = sizes.InputAttachments;
+        poolSizes.push_back(poolSize);
+    }
+
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = poolSizes.size();
+    poolInfo.pPoolSizes = poolSizes.data();
+
+    poolInfo.maxSets = maxSets;
+
+    EuropaDescriptorPoolVk* pool = new EuropaDescriptorPoolVk();
+    pool->m_device = this;
+    
+    if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &pool->m_pool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor pool!");
+    }
+
+    return pool;
 }
 
 EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutInfo& args)
@@ -796,6 +901,11 @@ EuropaBuffer* EuropaDeviceVk::CreateBuffer(EuropaBufferInfo& args)
     vmaCreateBuffer(m_allocator, &bufferInfo, &allocInfo, &buffer->m_buffer, &buffer->m_allocation, nullptr);
     
     return buffer;
+}
+
+uint32 EuropaDeviceVk::GetMinUniformBufferOffsetAlignment()
+{
+    return m_properties.limits.minUniformBufferOffsetAlignment;
 }
 
 EuropaImageViewVk::~EuropaImageViewVk()
@@ -1298,6 +1408,11 @@ void EuropaCmdlistVk::CopyBuffer(EuropaBuffer* _dst, EuropaBuffer* _src, uint32 
     vkCmdCopyBuffer(m_cmdlist, src->m_buffer, dst->m_buffer, 1, &copy);
 }
 
+void EuropaCmdlistVk::BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout* layout, EuropaDescriptorSet* descSet, uint32 set)
+{
+    vkCmdBindDescriptorSets(m_cmdlist, VkPipelineBindPoint(bindPoint), static_cast<EuropaPipelineLayoutVk*>(layout)->m_layout, set, 1, &static_cast<EuropaDescriptorSetVk*>(descSet)->m_set, 0, 0);
+}
+
 EuropaSemaphoreVk::~EuropaSemaphoreVk()
 {
     vkDestroySemaphore(m_device->m_device, m_sema, nullptr);
@@ -1460,4 +1575,50 @@ void EuropaDescriptorSetLayoutVk::UniformBuffer(uint32 binding, uint32 count, Eu
 EuropaDescriptorSetLayoutVk::~EuropaDescriptorSetLayoutVk()
 {
     Clear();
+}
+
+EuropaDescriptorSet* EuropaDescriptorPoolVk::AllocateDescriptorSet(EuropaDescriptorSetLayout* layout)
+{
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = m_pool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &static_cast<EuropaDescriptorSetLayoutVk*>(layout)->m_setLayout;
+
+    EuropaDescriptorSetVk* set = new EuropaDescriptorSetVk();
+    set->m_device = m_device;
+
+    if (vkAllocateDescriptorSets(m_device->m_device, &allocInfo, &set->m_set) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate descriptor set!");
+    }
+
+    return set;
+}
+
+EuropaDescriptorPoolVk::~EuropaDescriptorPoolVk()
+{
+    vkDestroyDescriptorPool(m_device->m_device, m_pool, nullptr);
+}
+
+void EuropaDescriptorSetVk::SetUniformBuffer(EuropaBuffer* buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement)
+{
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = static_cast<EuropaBufferVk*>(buffer)->m_buffer;
+    bufferInfo.offset = offset;
+    bufferInfo.range = size;
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_set;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+
+    descriptorWrite.pBufferInfo = &bufferInfo;
+    descriptorWrite.pImageInfo = nullptr; // Optional
+    descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+    vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
 }

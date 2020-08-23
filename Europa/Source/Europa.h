@@ -588,6 +588,14 @@ public:
 	virtual ~EuropaFramebuffer() {};
 };
 
+class EuropaDescriptorSet
+{
+public:
+	virtual void SetUniformBuffer(EuropaBuffer* buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
+
+	virtual ~EuropaDescriptorSet() {};
+};
+
 class EuropaCmdlist
 {
 public:
@@ -601,8 +609,32 @@ public:
 	virtual void BindVertexBuffer(EuropaBuffer* buffer, uint32 offset, uint32 binding) = 0;
 	virtual void BindIndexBuffer(EuropaBuffer* buffer, uint32 offset, EuropaImageFormat indexFormat) = 0;
 	virtual void CopyBuffer(EuropaBuffer* dst, EuropaBuffer* src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0) = 0;
+	virtual void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout* layout, EuropaDescriptorSet* descSet, uint32 set = 0) = 0;
 
 	virtual ~EuropaCmdlist() {};
+};
+
+struct EuropaDescriptorPoolSizes
+{
+	uint32 Sampler = 0;
+	uint32 CombinedImageSampler = 0;
+	uint32 SampledImage = 0;
+	uint32 StorageImage = 0;
+	uint32 UniformTexel = 0;
+	uint32 StorageTexel = 0;
+	uint32 Uniform = 0;
+	uint32 Storage = 0;
+	uint32 UniformDynamic = 0;
+	uint32 StorageDynamic = 0;
+	uint32 InputAttachments = 0;
+};
+
+class EuropaDescriptorPool
+{
+public:
+	virtual EuropaDescriptorSet* AllocateDescriptorSet(EuropaDescriptorSetLayout* layout) = 0;
+
+	virtual ~EuropaDescriptorPool() {};
 };
 
 class EuropaCommandPool
@@ -628,6 +660,7 @@ public:
 	virtual EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;
 	virtual EuropaDescriptorSetLayout* CreateDescriptorSetLayout() = 0;
 	virtual EuropaPipelineLayout* CreatePipelineLayout(EuropaPipelineLayoutInfo& args) = 0;
+	virtual EuropaDescriptorPool* CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets) = 0;
 	virtual EuropaRenderPass* CreateRenderPassBuilder() = 0;
 	virtual EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args) = 0;
 	virtual EuropaCommandPool* CreateCommandPool(EuropaQueueFamilyProperties& queue) = 0;
@@ -637,6 +670,9 @@ public:
 	virtual void WaitForFences(uint32 numFences, EuropaFence** fences, bool waitAll = true, uint64 timeout = UINT64_MAX) = 0;
 	virtual void ResetFences(uint32 numFences, EuropaFence** fences) = 0;
 	virtual EuropaBuffer* CreateBuffer(EuropaBufferInfo& args) = 0;
+
+	virtual uint32 GetMinUniformBufferOffsetAlignment() = 0;
+
 	virtual ~EuropaDevice() {};
 };
 

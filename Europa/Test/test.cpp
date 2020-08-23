@@ -205,6 +205,46 @@ int AppMain(IoSurface& s)
 		0, 1, 2, 2, 3, 0
 	};
 
+	// Constants & Uniform buffers & Descriptor Pools / Sets
+	struct ShaderConstants {
+		glm::vec4 color;
+	};
+
+	EuropaDescriptorPoolSizes descPoolSizes;
+	descPoolSizes.Uniform = uint32(swapChainImages.size());
+
+	EuropaDescriptorPool* pool = selectedDevice->CreateDescriptorPool(descPoolSizes, uint32(swapChainImages.size()));
+
+	std::vector<EuropaDescriptorSet*> descSets;
+
+	for (uint32 i = 0; i < swapChainImages.size(); i++)
+	{
+		descSets.push_back(pool->AllocateDescriptorSet(descLayout));
+	}
+
+	uint32 constantsSize = alignUp(uint32(sizeof(ShaderConstants)), selectedDevice->GetMinUniformBufferOffsetAlignment());
+
+	EuropaBufferInfo uniformBufferInfo;
+	uniformBufferInfo.exclusive = true;
+	uniformBufferInfo.size = uint32(swapChainImages.size() * constantsSize);
+	uniformBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageUniform);
+	uniformBufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
+	EuropaBuffer* uniformBuffer = selectedDevice->CreateBuffer(uniformBufferInfo);
+
+	{
+		uint8* mappedBuffer = uniformBuffer->Map<uint8>();
+		for (uint32 i = 0; i < swapChainImages.size(); i++)
+		{
+			reinterpret_cast<ShaderConstants*>(mappedBuffer + i * constantsSize)->color = i % 2 ? glm::vec4(1.0, 1.0, 0.0, 1.0) : glm::vec4(0.0, 1.0, 1.0, 1.0);
+		}
+		uniformBuffer->Unmap();
+	}
+
+	for (uint32 i = 0; i < swapChainImages.size(); i++)
+	{
+		descSets[i]->SetUniformBuffer(uniformBuffer, constantsSize * i, sizeof(ShaderConstants), 0, 0);
+	}
+
 	// Create & Upload geometry buffers
 	EuropaBufferInfo vertexBufferInfo;
 	vertexBufferInfo.exclusive = true;
@@ -260,6 +300,7 @@ int AppMain(IoSurface& s)
 		cmdlist->BindPipeline(pipeline);
 		cmdlist->BindVertexBuffer(vertexBuffer, 0, 0);
 		cmdlist->BindIndexBuffer(indexBuffer, 0, EuropaImageFormat::R16UI);
+		cmdlist->BindDescriptorSets(EuropaPipelineBindPoint::Graphics, pipelineLayout, descSets[i]);
 		cmdlist->DrawIndexed(6, 1, 0, 0, 0);
 		cmdlist->EndRenderpass();
 		cmdlist->End();
