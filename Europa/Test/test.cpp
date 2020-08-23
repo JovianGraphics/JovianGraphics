@@ -2,12 +2,14 @@
 #include "Io/Source/IoEntryFunc.h"
 #include "Europa/Source/Europa.h"
 #include "Europa/Source/EuropaVk.h"
+#include "Europa/Source/EuropaUtils.h"
 #include "Ganymede/Source/Ganymede.h"
 
 #include "triangle.frag.h"
 #include "triangle.vert.h"
 
 #include <thread>
+#include <chrono>
 
 struct Vertex
 {
@@ -193,11 +195,15 @@ int AppMain(IoSurface& s)
 
 	std::vector<EuropaCmdlist*> cmdlists = cmdpool->AllocateCommandBuffers(0, uint32(swapChainImages.size()));
 
+	// Create Utils
+	EuropaCmdlist* copyCmdlist = cmdpool->AllocateCommandBuffers(0, 1)[0];
+	EuropaTransferUtil* transferUtil = new EuropaTransferUtil(selectedDevice, cmdQueue, copyCmdlist, 64 << 20); // 64M
+
 	// Geometry data
 	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+		{{0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 0.0f}},
 		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
 	};
 
@@ -235,7 +241,7 @@ int AppMain(IoSurface& s)
 		uint8* mappedBuffer = uniformBuffer->Map<uint8>();
 		for (uint32 i = 0; i < swapChainImages.size(); i++)
 		{
-			reinterpret_cast<ShaderConstants*>(mappedBuffer + i * constantsSize)->color = i % 2 ? glm::vec4(1.0, 1.0, 0.0, 1.0) : glm::vec4(0.0, 1.0, 1.0, 1.0);
+			reinterpret_cast<ShaderConstants*>(mappedBuffer + i * constantsSize)->color = glm::vec4(1.0, 1.0, 1.0, 1.0);
 		}
 		uniformBuffer->Unmap();
 	}
@@ -252,15 +258,8 @@ int AppMain(IoSurface& s)
 	vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferDst);
 	vertexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
 	EuropaBuffer* vertexBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
-	vertexBufferInfo.usage = EuropaBufferUsageTransferSrc;
-	vertexBufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
-	EuropaBuffer* vertexUploadBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
-
-	{
-		Vertex* mappedBuffer = vertexUploadBuffer->Map<Vertex>();
-		memcpy(mappedBuffer, vertices.data(), vertexBufferInfo.size);
-		vertexUploadBuffer->Unmap();
-	}
+	
+	transferUtil->UploadToBufferEx(vertexBuffer, vertices.data(), uint32(vertices.size()));
 
 	EuropaBufferInfo indexBufferInfo;
 	indexBufferInfo.exclusive = true;
@@ -268,28 +267,8 @@ int AppMain(IoSurface& s)
 	indexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageIndex | EuropaBufferUsageTransferDst);
 	indexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
 	EuropaBuffer* indexBuffer = selectedDevice->CreateBuffer(indexBufferInfo);
-	indexBufferInfo.usage = EuropaBufferUsageTransferSrc;
-	indexBufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
-	EuropaBuffer* indexUploadBuffer = selectedDevice->CreateBuffer(indexBufferInfo);
 
-	{
-		uint32* mappedBuffer = indexUploadBuffer->Map<uint32>();
-		memcpy(mappedBuffer, indices.data(), indexBufferInfo.size);
-		indexUploadBuffer->Unmap();
-	}
-
-	{
-		EuropaCmdlist* copyCmdlist = cmdpool->AllocateCommandBuffers(0, 1)[0];
-		copyCmdlist->Begin();
-		copyCmdlist->CopyBuffer(vertexBuffer, vertexUploadBuffer, vertexBufferInfo.size);
-		copyCmdlist->CopyBuffer(indexBuffer, indexUploadBuffer, indexBufferInfo.size);
-		copyCmdlist->End();
-
-		cmdQueue->Submit(copyCmdlist);
-		cmdQueue->WaitIdle();
-
-		GanymedeDelete(vertexUploadBuffer);
-	}
+	transferUtil->UploadToBufferEx(indexBuffer, indices.data(), uint32(indices.size()));
 
 	// Record Command Lists
 	uint32 i = 0;
@@ -330,6 +309,7 @@ int AppMain(IoSurface& s)
 	// Rendering thread
 	std::thread rendering([&]()
 	{
+		auto startTime = std::chrono::steady_clock::now();
 		while (running)
 		{
 			selectedDevice->WaitForFences(1, &inFlightFences[currentFrame]);
@@ -340,6 +320,13 @@ int AppMain(IoSurface& s)
 			imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
 			selectedDevice->ResetFences(1, &inFlightFences[currentFrame]);
+
+			auto currentTime = std::chrono::steady_clock::now();
+			float runTime = std::chrono::duration<float>(currentTime - startTime).count();
+
+			ShaderConstants* constants = reinterpret_cast<ShaderConstants*>(uniformBuffer->Map<uint8>() + currentFrame * constantsSize);
+			constants->color = glm::vec4(sin(runTime) * 0.5 + 0.5, cos(runTime) * 0.5 + 0.5, cos(runTime * 2.0) * 0.5 + 0.5, 1.0);
+			uniformBuffer->Unmap();
 
 			EuropaPipelineStage waitStage = EuropaPipelineStageColorAttachmentOutput;
 			cmdQueue->Submit(1, &imageAvailableSemaphore[currentFrame], &waitStage, 1, &cmdlists[imageIndex], 1, &renderFinishedSemaphore[currentFrame], inFlightFences[currentFrame]);
@@ -358,6 +345,7 @@ int AppMain(IoSurface& s)
 
 	selectedDevice->WaitIdle();
 
+	GanymedeDelete(transferUtil);
 	GanymedeDelete(vertexBuffer);
 	for (auto f : inFlightFences) GanymedeDelete(f);
 	for (auto s : imageAvailableSemaphore) GanymedeDelete(s);
