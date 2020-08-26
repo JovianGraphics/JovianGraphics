@@ -29,7 +29,7 @@ add_custom_command(
 	COMMAND ruby ${CMAKE_SOURCE_DIR}/Europa/Tools/compile_shader.rb ${CMAKE_SOURCE_DIR}/Europa/Test/triangle.vert output=${CMAKE_BINARY_DIR}/generated/triangle.vert.h
 )
 
-add_custom_target(shaders ALL DEPENDS
+add_custom_target(EuropaTestShaders ALL DEPENDS
 	triangle.frag.h
 	triangle.vert.h
 )
@@ -49,6 +49,6 @@ add_executable(EuropaTest
 endif()
 
 target_link_libraries(EuropaTest PUBLIC Europa Io)
-add_dependencies(EuropaTest shaders)
+add_dependencies(EuropaTest EuropaTestShaders)
 
 include_directories(Source)

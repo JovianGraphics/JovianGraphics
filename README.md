@@ -13,7 +13,7 @@
 
 ## Level 2 Components
 
-1. [Plan] Amalthea - Renderer
+1. [Prototype] Amalthea - Renderer
 2. [Plan] Himalia - Asset Import / Export Module
 3. [Plan] Elara - Geometry Engine (Collision, Ray-casting, etc.)
 
