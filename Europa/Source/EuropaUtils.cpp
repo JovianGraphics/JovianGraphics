@@ -46,3 +46,41 @@ EuropaTransferUtil::~EuropaTransferUtil()
 {
     GanymedeDelete(m_bufferCpu2Gpu);
 }
+
+EuropaStreamingBuffer::Handle EuropaStreamingBuffer::AllocateTransient(uint32 size)
+{
+    Handle h;
+    h.buffer = m_streamingBuffers[m_currentFrame];
+    h.offset = m_currentFrameOffset;
+
+    m_currentFrameOffset += size;
+
+    return h;
+}
+
+void EuropaStreamingBuffer::NewFrame()
+{
+    m_currentFrame = (m_currentFrame + 1) % m_frameCount;
+    m_currentFrameOffset = 0;
+}
+
+EuropaStreamingBuffer::EuropaStreamingBuffer(EuropaDevice* device, uint32 frameCount)
+    : m_device(device)
+    , m_frameCount(frameCount)
+{
+    EuropaBufferInfo bufferInfo;
+    bufferInfo.exclusive = true;
+    bufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
+    bufferInfo.size = 16 << 20;
+    bufferInfo.usage = EuropaBufferUsage::EuropaBufferUsageTransferSrc;
+
+    for (uint32 i = 0; i < frameCount; i++)
+    {
+        m_streamingBuffers.push_back(m_device->CreateBuffer(bufferInfo));
+    }
+}
+
+EuropaStreamingBuffer::~EuropaStreamingBuffer()
+{
+    for (auto b : m_streamingBuffers) GanymedeDelete(b);
+}
