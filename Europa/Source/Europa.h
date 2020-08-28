@@ -294,13 +294,19 @@ GANYMEDE_ENUM(EuropaMemoryUsage,
 	(GpuLazyAllocated)
 )
 
-class EuropaSemaphore
+class EuropaDeviceObject
+{
+public:
+	virtual ~EuropaDeviceObject() {};
+};
+
+class EuropaSemaphore : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaSemaphore() {};
 };
 
-class EuropaFence
+class EuropaFence : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaFence() {};
@@ -380,7 +386,7 @@ public:
 	virtual ~EuropaQueue() {};
 };
 
-class EuropaImage
+class EuropaImage : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaImage() {};
@@ -397,13 +403,13 @@ struct EuropaImageViewCreateInfo
 	uint32 numArrayLayers;
 };
 
-class EuropaImageView
+class EuropaImageView : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaImageView() {};
 };
 
-class EuropaShaderModule
+class EuropaShaderModule : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaShaderModule() {};
@@ -476,7 +482,7 @@ struct EuropaRasterizerStateInfo
 	bool counterClockwise = true;
 };
 
-class EuropaDescriptorSetLayout
+class EuropaDescriptorSetLayout : public EuropaDeviceObject
 {
 public:
 	virtual void Build() = 0;
@@ -486,14 +492,14 @@ public:
 	virtual ~EuropaDescriptorSetLayout() {};
 };
 
-struct EuropaPipelineLayoutInfo
+struct EuropaPipelineLayoutInfo : public EuropaDeviceObject
 {
 	uint32 setLayoutCount;
 	uint32 pushConstantRangeCount;
 	EuropaDescriptorSetLayout** descSetLayouts;
 };
 
-class EuropaPipelineLayout
+class EuropaPipelineLayout : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaPipelineLayout() {};
@@ -516,7 +522,7 @@ struct EuropaAttachmentReference
 	EuropaImageLayout layout;
 };
 
-class EuropaRenderPass
+class EuropaRenderPass : public EuropaDeviceObject
 {
 public:
 	static const uint32 SubpassExternal = 0xFFFFFFFF;
@@ -537,7 +543,7 @@ struct EuropaBufferInfo
 	bool exclusive;
 };
 
-class EuropaBuffer
+class EuropaBuffer : public EuropaDeviceObject
 {
 public:
 	virtual void* MapT() = 0;
@@ -567,7 +573,7 @@ struct EuropaGraphicsPipelineCreateInfo
 	uint32 targetSubpass = 0;
 };
 
-class EuropaGraphicsPipeline
+class EuropaGraphicsPipeline : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaGraphicsPipeline() {};
@@ -582,13 +588,13 @@ struct EuropaFramebufferCreateInfo
 	uint32 layers;
 };
 
-class EuropaFramebuffer
+class EuropaFramebuffer : public EuropaDeviceObject
 {
 public:
 	virtual ~EuropaFramebuffer() {};
 };
 
-class EuropaDescriptorSet
+class EuropaDescriptorSet : public EuropaDeviceObject
 {
 public:
 	virtual void SetUniformBuffer(EuropaBuffer* buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
@@ -629,7 +635,7 @@ struct EuropaDescriptorPoolSizes
 	uint32 InputAttachments = 0;
 };
 
-class EuropaDescriptorPool
+class EuropaDescriptorPool : public EuropaDeviceObject
 {
 public:
 	virtual EuropaDescriptorSet* AllocateDescriptorSet(EuropaDescriptorSetLayout* layout) = 0;
@@ -637,7 +643,7 @@ public:
 	virtual ~EuropaDescriptorPool() {};
 };
 
-class EuropaCommandPool
+class EuropaCommandPool : public EuropaDeviceObject
 {
 public:
 	virtual std::vector<EuropaCmdlist*> AllocateCommandBuffers(uint8 level, uint32 count) = 0;

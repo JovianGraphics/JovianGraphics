@@ -72,7 +72,7 @@ EuropaStreamingBuffer::EuropaStreamingBuffer(EuropaDevice* device, uint32 frameC
     bufferInfo.exclusive = true;
     bufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
     bufferInfo.size = 16 << 20;
-    bufferInfo.usage = EuropaBufferUsage::EuropaBufferUsageTransferSrc;
+    bufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageTransferSrc | EuropaBufferUsageUniform);
 
     for (uint32 i = 0; i < frameCount; i++)
     {
@@ -83,4 +83,43 @@ EuropaStreamingBuffer::EuropaStreamingBuffer(EuropaDevice* device, uint32 frameC
 EuropaStreamingBuffer::~EuropaStreamingBuffer()
 {
     for (auto b : m_streamingBuffers) GanymedeDelete(b);
+}
+
+void EuropaDestroyQueue::SafeDestroy(EuropaDeviceObject* obj)
+{
+    if (obj)
+    {
+        m_queue.push_back({ obj, m_numFrames });
+    }
+}
+
+void EuropaDestroyQueue::NewFrame()
+{
+    uint32 i = 0;
+    for (Entry& e : m_queue)
+    {
+        e.lifetime--;
+        if (e.lifetime <= 0)
+        {
+            delete e.obj;
+            m_queue.erase(m_queue.begin() + i);
+        }
+        else
+        {
+            i++;
+        }
+    }
+}
+
+EuropaDestroyQueue::EuropaDestroyQueue(uint32 numFrames)
+    : m_numFrames(numFrames)
+{
+}
+
+EuropaDestroyQueue::~EuropaDestroyQueue()
+{
+    for (Entry e : m_queue)
+    {
+        delete e.obj;
+    }
 }

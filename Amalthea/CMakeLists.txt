@@ -7,6 +7,7 @@ project ("Europa")
 
 add_library(Amalthea
 	Source/Amalthea.cpp
+	Source/AmaltheaPipeline.cpp
 )
 
 set_property(TARGET Amalthea PROPERTY CXX_STANDARD 17)
