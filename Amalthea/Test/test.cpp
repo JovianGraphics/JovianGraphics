@@ -2,7 +2,6 @@
 #include "Io/Source/IoEntryFunc.h"
 #include "Europa/Source/EuropaVk.h"
 #include "Amalthea/Source/Amalthea.h"
-#include "Amalthea/Source/AmaltheaPipeline.h"
 #include "Ganymede/Source/Ganymede.h"
 
 #include "triangle.frag.h"
@@ -47,42 +46,8 @@ public:
 
 	uint32 m_constantsSize;
 
-	AmaltheaPipeline m_renderGraph;
-	uint32 swapChainTarget;
-
 	void OnDeviceCreated()
 	{
-		// Create Render Graph
-		swapChainTarget = m_renderGraph.ResourceImage2D("Swap Chain target", m_swapChainCaps.surfaceCaps.currentExtent, 1, EuropaImageFormat::BGRA8sRGB, EuropaImageLayout::Present, true);
-
-		struct ForwardModuleData
-		{
-			uint32 frameBuffer;
-		};
-
-		auto forwardModule = m_renderGraph.CreateModule<ForwardModuleData>("Forward Geometry");
-		forwardModule->UseRenderTarget(swapChainTarget);
-		forwardModule->SetExecuteCallback<ForwardModuleData>(
-			[&](AmaltheaPipeline::Module m, AmaltheaFrame& ctx, float time)
-			{
-				auto constantsHandle = m_streamingBuffer->AllocateTransient(m_constantsSize);
-				ShaderConstants* constants = constantsHandle.Map<ShaderConstants>();
-				constants->color = glm::vec4(sin(time) * 0.5 + 0.5, cos(time) * 0.5 + 0.5, cos(time * 2.0) * 0.5 + 0.5, 1.0);
-				constantsHandle.Unmap();
-
-				m_descSets[ctx.frameIndex]->SetUniformBuffer(constantsHandle.buffer, constantsHandle.offset, m_constantsSize, 0, 0);
-
-				ctx.cmdlist->BindPipeline(m_pipeline);
-				ctx.cmdlist->BindVertexBuffer(m_vertexBuffer, 0, 0);
-				ctx.cmdlist->BindIndexBuffer(m_indexBuffer, 0, EuropaImageFormat::R16UI);
-				ctx.cmdlist->BindDescriptorSets(EuropaPipelineBindPoint::Graphics, m_pipelineLayout, m_descSets[ctx.frameIndex]);
-				ctx.cmdlist->DrawIndexed(6, 1, 0, 0, 0);
-			}
-		);
-
-		m_renderGraph.SetTarget(swapChainTarget);
-		m_renderGraph.Compile();
-
 		// Create Pipeline
 		EuropaVertexInputBindingInfo binding;
 		binding.binding = 0;
@@ -107,11 +72,7 @@ public:
 		descLayout->UniformBuffer(0, 1, EuropaShaderStageAllGraphics);
 		descLayout->Build();
 
-		EuropaPipelineLayoutInfo layoutInfo;
-		layoutInfo.pushConstantRangeCount = 0;
-		layoutInfo.setLayoutCount = 1;
-		layoutInfo.descSetLayouts = &descLayout;
-		m_pipelineLayout = m_device->CreatePipelineLayout(layoutInfo);
+		m_pipelineLayout = m_device->CreatePipelineLayout(EuropaPipelineLayoutInfo{ 1, 0, &descLayout });
 
 		EuropaGraphicsPipelineCreateInfo pipelineDesc{};
 
@@ -133,7 +94,7 @@ public:
 		pipelineDesc.scissor.position = glm::vec2(0.0);
 		pipelineDesc.scissor.size = m_swapChainCaps.surfaceCaps.currentExtent;
 		pipelineDesc.layout = m_pipelineLayout;
-		pipelineDesc.renderpass = forwardModule->GetRenderPass();
+		pipelineDesc.renderpass = m_mainRenderPass;
 		pipelineDesc.targetSubpass = 0;
 
 		m_pipeline = m_device->CreateGraphicsPipeline(pipelineDesc);
@@ -169,20 +130,46 @@ public:
 		m_indexBuffer = m_device->CreateBuffer(indexBufferInfo);
 
 		m_transferUtil->UploadToBufferEx(m_indexBuffer, indices.data(), uint32(indices.size()));
+
+		// Create Framebuffers
+		for (AmaltheaFrame& ctx : m_frames)
+		{
+			EuropaFramebufferCreateInfo desc;
+			desc.attachments = { ctx.imageView };
+			desc.width = m_swapChainCaps.surfaceCaps.currentExtent.x;
+			desc.height = m_swapChainCaps.surfaceCaps.currentExtent.y;
+			desc.layers = 1;
+			desc.renderpass = m_mainRenderPass;
+
+			EuropaFramebuffer* framebuffer = m_device->CreateFramebuffer(desc);
+
+			m_frameBuffers.push_back(framebuffer);
+		}
 	}
 
 	void RenderFrame(AmaltheaFrame& ctx, float time)
 	{
-		m_renderGraph.AssignResourceImage2D(swapChainTarget, ctx.image, ctx.imageView);
+		auto constantsHandle = m_streamingBuffer->AllocateTransient(m_constantsSize);
+		ShaderConstants* constants = constantsHandle.Map<ShaderConstants>();
+		constants->color = glm::vec4(sin(time) * 0.5 + 0.5, cos(time) * 0.5 + 0.5, cos(time * 2.0) * 0.5 + 0.5, 1.0);
+		constantsHandle.Unmap();
+
+		m_descSets[ctx.frameIndex]->SetUniformBuffer(constantsHandle.buffer, constantsHandle.offset, m_constantsSize, 0, 0);
 
 		ctx.cmdlist->Begin();
-		m_renderGraph.Execute(ctx, time);
+		ctx.cmdlist->BeginRenderpass(m_mainRenderPass, m_frameBuffers[ctx.frameIndex], glm::ivec2(0), glm::uvec2(m_swapChainCaps.surfaceCaps.currentExtent), 1, glm::vec4(0.0, 0.0, 0.0, 1.0));
+		ctx.cmdlist->BindPipeline(m_pipeline);
+		ctx.cmdlist->BindVertexBuffer(m_vertexBuffer, 0, 0);
+		ctx.cmdlist->BindIndexBuffer(m_indexBuffer, 0, EuropaImageFormat::R16UI);
+		ctx.cmdlist->BindDescriptorSets(EuropaPipelineBindPoint::Graphics, m_pipelineLayout, m_descSets[ctx.frameIndex]);
+		ctx.cmdlist->DrawIndexed(6, 1, 0, 0, 0);
+		ctx.cmdlist->EndRenderpass();
 		ctx.cmdlist->End();
 	}
 
 	~TestApp()
 	{
-		//for (auto fb : m_frameBuffers) GanymedeDelete(fb);
+		for (auto fb : m_frameBuffers) GanymedeDelete(fb);
 		GanymedeDelete(m_vertexBuffer);
 		GanymedeDelete(m_indexBuffer);
 		GanymedeDelete(m_uniformBuffer);
@@ -190,11 +177,7 @@ public:
 		GanymedeDelete(m_pipelineLayout);
 	}
 
-	TestApp(Europa& e, IoSurface& s)
-		: Amalthea(e, s)
-		, m_renderGraph(*this)
-	{
-	}
+	TestApp(Europa& e, IoSurface& s) : Amalthea(e, s) {};
 };
 
 int AppMain(IoSurface& s)

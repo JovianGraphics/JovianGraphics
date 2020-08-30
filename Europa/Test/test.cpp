@@ -163,11 +163,7 @@ int AppMain(IoSurface& s)
 	descLayout->UniformBuffer(0, 1, EuropaShaderStageAllGraphics);
 	descLayout->Build();
 
-	EuropaPipelineLayoutInfo layoutInfo;
-	layoutInfo.pushConstantRangeCount = 0;
-	layoutInfo.setLayoutCount = 1;
-	layoutInfo.descSetLayouts = &descLayout;
-	EuropaPipelineLayout* pipelineLayout = selectedDevice->CreatePipelineLayout(layoutInfo);
+	EuropaPipelineLayout* pipelineLayout = selectedDevice->CreatePipelineLayout(EuropaPipelineLayoutInfo{ 1, 0, &descLayout });
 
 	EuropaGraphicsPipelineCreateInfo pipelineDesc{};
 

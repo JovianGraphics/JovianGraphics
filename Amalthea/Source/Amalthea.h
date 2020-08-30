@@ -23,6 +23,7 @@ class Amalthea : public AmaltheaBehaviors
 public:
     const int MAX_FRAMES_IN_FLIGHT = 3;
 
+protected:
     Europa& m_europa;
     IoSurface& m_ioSurface;
 
@@ -37,6 +38,8 @@ public:
     EuropaSwapChain* m_swapChain = nullptr;
     EuropaSwapChainCapabilities m_swapChainCaps;
 
+    EuropaRenderPass* m_mainRenderPass = nullptr;
+
     EuropaCommandPool* m_cmdpool;
 
     std::vector<EuropaSemaphore*> m_imageAvailableSemaphore;
@@ -49,7 +52,6 @@ public:
     EuropaCmdlist* m_copyCmdlist;
     EuropaTransferUtil* m_transferUtil;
     EuropaStreamingBuffer* m_streamingBuffer;
-    EuropaDestroyQueue* m_destroyQueue;
 
 public:
     void Run();

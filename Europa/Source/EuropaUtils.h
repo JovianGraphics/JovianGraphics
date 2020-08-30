@@ -52,23 +52,3 @@ public:
     EuropaStreamingBuffer(EuropaDevice* device, uint32 frameCount);
     ~EuropaStreamingBuffer();
 };
-
-class EuropaDestroyQueue
-{
-private:
-    struct Entry
-    {
-        EuropaDeviceObject* obj;
-        uint32 lifetime;
-    };
-
-    std::vector<Entry> m_queue;
-    uint32 m_numFrames;
-
-public:
-    void SafeDestroy(EuropaDeviceObject* obj);
-    void NewFrame();
-
-    EuropaDestroyQueue(uint32 numFrames);
-    ~EuropaDestroyQueue();
-};
