@@ -171,7 +171,7 @@ public:
 
 		// Load Model
 		HimaliaPlyModel plyModel;
-		plyModel.LoadFile("monkey.ply");
+		plyModel.LoadFile("bun_zipper_res2.ply");
 
 		HimaliaVertexProperty vertexFormat[] = {
 			HimaliaVertexProperty::Position,
@@ -222,7 +222,7 @@ public:
 		ShaderConstants* constants = constantsHandle.Map<ShaderConstants>();
 		
 		constants->modelMtx = glm::rotate(time, glm::vec3(0.0f, 1.0f, 0.0f));
-		constants->projViewMtx = glm::lookAt(glm::vec3(0.0, 2.0, -4.0), glm::vec3(0.0, 2.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		constants->projViewMtx = glm::lookAt(glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 		constants->projViewMtx = glm::perspective(glm::radians(60.0f), float(m_swapChainCaps.surfaceCaps.currentExtent.x) / (m_swapChainCaps.surfaceCaps.currentExtent.y), 0.01f, 256.0f) * constants->projViewMtx;
 
 		constantsHandle.Unmap();

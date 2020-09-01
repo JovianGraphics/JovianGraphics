@@ -11,7 +11,7 @@ const vec3 sunDir = normalize(vec3(0.0, 1.0, 0.0));
 void main() {
     vec3 color = fragColor;
 
-    color *= max(0.0, dot(normal, sunDir)) * 0.9 + 0.1;
+    // color *= max(0.0, dot(normal, sunDir)) * 0.9 + 0.1;
 
     outColor = vec4(color, 1.0);
 }
