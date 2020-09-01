@@ -740,9 +740,9 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
 
     VkViewport viewport{};
     viewport.x = args.viewport.position.x;
-    viewport.y = args.viewport.position.y;
+    viewport.y = args.viewport.size.y - args.viewport.position.y;
     viewport.width = args.viewport.size.x;
-    viewport.height = args.viewport.size.y;
+    viewport.height = -args.viewport.size.y;
     viewport.minDepth = args.viewport.minDepth;
     viewport.maxDepth = args.viewport.maxDepth;
 
