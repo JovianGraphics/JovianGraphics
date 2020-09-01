@@ -274,8 +274,11 @@ int AppMain(IoSurface& s)
 	uint32 i = 0;
 	for (EuropaCmdlist* cmdlist : cmdlists)
 	{
+		EuropaClearValue clearValue;
+		clearValue.color = glm::vec4(0.0, 0.0, 0.0, 1.0);
+
 		cmdlist->Begin();
-		cmdlist->BeginRenderpass(renderpass, framebuffers[i], glm::ivec2(0), glm::uvec2(swapChainCaps.surfaceCaps.currentExtent), 1, glm::vec4(0.0, 0.0, 0.0, 1.0));
+		cmdlist->BeginRenderpass(renderpass, framebuffers[i], glm::ivec2(0), glm::uvec2(swapChainCaps.surfaceCaps.currentExtent), 1, &clearValue);
 		cmdlist->BindPipeline(pipeline);
 		cmdlist->BindVertexBuffer(vertexBuffer, 0, 0);
 		cmdlist->BindIndexBuffer(indexBuffer, 0, EuropaImageFormat::R16UI);

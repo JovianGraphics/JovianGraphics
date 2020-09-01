@@ -38,8 +38,6 @@ protected:
     EuropaSwapChain* m_swapChain = nullptr;
     EuropaSwapChainCapabilities m_swapChainCaps;
 
-    EuropaRenderPass* m_mainRenderPass = nullptr;
-
     EuropaCommandPool* m_cmdpool;
 
     std::vector<EuropaSemaphore*> m_imageAvailableSemaphore;

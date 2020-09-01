@@ -25,7 +25,7 @@ class IoSurfaceWin32 : public IoSurface
 private:
 	bool Running = true;
 
-	glm::uvec2 size = glm::uvec2(1280, 600);
+	glm::uvec2 size = glm::uvec2(1280, 800);
 
 public:
 	HWND m_hwnd;

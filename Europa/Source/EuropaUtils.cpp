@@ -72,7 +72,7 @@ EuropaStreamingBuffer::EuropaStreamingBuffer(EuropaDevice* device, uint32 frameC
     bufferInfo.exclusive = true;
     bufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
     bufferInfo.size = 16 << 20;
-    bufferInfo.usage = EuropaBufferUsage::EuropaBufferUsageTransferSrc;
+    bufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageTransferSrc | EuropaBufferUsageUniform);
 
     for (uint32 i = 0; i < frameCount; i++)
     {

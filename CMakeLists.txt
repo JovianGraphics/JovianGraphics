@@ -16,6 +16,7 @@ add_subdirectory(External/preprocessor)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_subdirectory(Ganymede)
+add_subdirectory(Himalia)
 add_subdirectory(Io)
 add_subdirectory(Europa)
 add_subdirectory(Amalthea)

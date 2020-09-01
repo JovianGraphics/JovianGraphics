@@ -42,6 +42,7 @@ public:
 	EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface);
 	EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args);
 	std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain);
+	EuropaImage* CreateImage(EuropaImageInfo& args);
 	EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args);
 	EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args);
 	EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size);
@@ -93,7 +94,13 @@ public:
 class EuropaImageVk : public EuropaImage
 {
 public:
+	EuropaDeviceVk* m_device;
 	VkImage m_image;
+	VmaAllocation m_alloc;
+
+	bool external = true;
+
+	~EuropaImageVk();
 };
 
 class EuropaImageViewVk : public EuropaImageView
@@ -181,7 +188,7 @@ public:
 
 	void Begin();
 	void End();
-	void BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, glm::vec4 clearColor);
+	void BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor);
 	void EndRenderpass();
 	void BindPipeline(EuropaGraphicsPipeline* pipeline);
 	void DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance);
@@ -241,6 +248,7 @@ class EuropaRenderPassVk : public EuropaRenderPass
 private:
 	std::vector<VkAttachmentDescription> attachments;
 	std::vector<VkAttachmentReference> attachmentReferences;
+	std::vector<VkAttachmentReference> depthAttachmentReferences;
 	std::vector<VkSubpassDescription> subpasses;
 	std::vector<VkSubpassDependency> dependencies;
 
@@ -249,7 +257,7 @@ public:
 	VkRenderPass m_renderPass;
 	
 	uint32 AddAttachment(EuropaAttachmentInfo& attachment);
-	uint32 AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments);
+	uint32 AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments, EuropaAttachmentReference* depthAttachment = nullptr);
 	void AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess);
 	void CreateRenderpass();
 

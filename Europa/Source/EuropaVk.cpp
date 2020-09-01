@@ -416,6 +416,37 @@ std::vector<EuropaImage*> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain* _s
     return images;
 }
 
+EuropaImage* EuropaDeviceVk::CreateImage(EuropaImageInfo& args)
+{
+    VkImageCreateInfo imageInfo{};
+
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VkImageType(args.type);
+    imageInfo.extent.width = args.width;
+    imageInfo.extent.height = args.height;
+    imageInfo.extent.depth = args.depth;
+    imageInfo.mipLevels = args.numMipLevels;
+    imageInfo.arrayLayers = args.numArrayLayers;
+    imageInfo.format = EuropaImageFormat2VkFormat(args.format);
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VkImageLayout(args.initialLayout);
+    imageInfo.usage = VkImageUsageFlagBits(args.usage);
+    imageInfo.sharingMode = args.exclusive ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.flags = (+(args.usage & EuropaImageUsageDepthStencilAttachment)) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+
+    EuropaImageVk* image = new EuropaImageVk();
+    image->external = false;
+    image->m_device = this;
+
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VmaMemoryUsage(args.memoryUsage);
+
+    vmaCreateImage(m_allocator, &imageInfo, &allocInfo, &image->m_image, &image->m_alloc, nullptr);
+
+    return image;
+}
+
 EuropaImageView* EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args)
 {
     EuropaImageVk* image = reinterpret_cast<EuropaImageVk*>(args.image);
@@ -762,6 +793,16 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = args.depthStencil.enableDepthTest;
+    depthStencil.depthWriteEnable = args.depthStencil.enableDepthWrite;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f; // Optional
+    depthStencil.maxDepthBounds = 1.0f; // Optional
+    depthStencil.stencilTestEnable = VK_FALSE;
+
     // FIXME: Support more than one attachment
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -779,7 +820,7 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = nullptr; // Optional
+    pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = nullptr; // Optional
 
@@ -1033,6 +1074,9 @@ VkFormat formatsFromEuropa[] = {
 
     VK_FORMAT_BC5_UNORM_BLOCK, // BC5RGBAUnorm
     VK_FORMAT_BC5_SNORM_BLOCK, // BC5RGBASnorm
+
+    VK_FORMAT_D16_UNORM, // D16Unorm
+    VK_FORMAT_D32_SFLOAT, // D32F
 };
 
 EuropaImageFormat formatsFromVk[] = {
@@ -1160,9 +1204,9 @@ EuropaImageFormat formatsFromVk[] = {
     EuropaImageFormat::Undefined, // VK_FORMAT_R64G64B64A64_SFLOAT = 121,
     EuropaImageFormat::B10G11R11UFloat, // VK_FORMAT_B10G11R11_UFLOAT_PACK32 = 122,
     EuropaImageFormat::E5B9G9R9UFloat, // VK_FORMAT_E5B9G9R9_UFLOAT_PACK32 = 123,
-    EuropaImageFormat::Undefined, // VK_FORMAT_D16_UNORM = 124,
+    EuropaImageFormat::D16Unorm, // VK_FORMAT_D16_UNORM = 124,
     EuropaImageFormat::Undefined, // VK_FORMAT_X8_D24_UNORM_PACK32 = 125,
-    EuropaImageFormat::Undefined, // VK_FORMAT_D32_SFLOAT = 126,
+    EuropaImageFormat::D32F, // VK_FORMAT_D32_SFLOAT = 126,
     EuropaImageFormat::Undefined, // VK_FORMAT_S8_UINT = 127,
     EuropaImageFormat::Undefined, // VK_FORMAT_D16_UNORM_S8_UINT = 128,
     EuropaImageFormat::Undefined, // VK_FORMAT_D24_UNORM_S8_UINT = 129,
@@ -1227,7 +1271,7 @@ uint32 EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
     return uint32(attachments.size() - 1);
 }
 
-uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments)
+uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments, EuropaAttachmentReference* depthAttachment)
 {
     size_t head = attachmentReferences.size();
 
@@ -1245,6 +1289,20 @@ uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::ve
     subpass.pipelineBindPoint = VkPipelineBindPoint(bindPoint);
     subpass.colorAttachmentCount = uint32(attachments.size());
     subpass.pColorAttachments = &attachmentReferences[head];
+
+    if (depthAttachment)
+    {
+        size_t depthHead = depthAttachmentReferences.size();
+
+        VkAttachmentReference ref{};
+
+        ref.attachment = depthAttachment->attachment;
+        ref.layout = VkImageLayout(depthAttachment->layout);
+
+        depthAttachmentReferences.push_back(ref);
+
+        subpass.pDepthStencilAttachment = &depthAttachmentReferences[depthHead];
+    }
 
     subpasses.push_back(subpass);
 
@@ -1343,7 +1401,7 @@ void EuropaCmdlistVk::End()
     }
 }
 
-void EuropaCmdlistVk::BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, glm::vec4 clearColor)
+void EuropaCmdlistVk::BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor)
 {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1352,9 +1410,26 @@ void EuropaCmdlistVk::BeginRenderpass(EuropaRenderPass* renderpass, EuropaFrameb
     renderPassInfo.renderArea.offset = { int32(offset.x), int32(offset.y) };
     renderPassInfo.renderArea.extent = { uint32(extent.x), uint32(extent.y) };
 
-    VkClearValue c = { clearColor.r, clearColor.g, clearColor.b, clearColor.a };
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &c;
+    std::vector<VkClearValue> clearValues;
+
+    for (uint32 i = 0; i < clearValueCount; i++)
+    {
+        VkClearValue v;
+        v.color.float32[0] = clearColor[i].color.r;
+        v.color.float32[1] = clearColor[i].color.g;
+        v.color.float32[2] = clearColor[i].color.b;
+        v.color.float32[3] = clearColor[i].color.a;
+        clearValues.push_back(v);
+    }
+
+    if (clearValueCount == 2)
+    {
+        clearValues[1].depthStencil.depth = 1.0f;
+        clearValues[1].depthStencil.stencil = 0;
+    }
+
+    renderPassInfo.clearValueCount = clearValueCount;
+    renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(m_cmdlist, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
@@ -1621,4 +1696,12 @@ void EuropaDescriptorSetVk::SetUniformBuffer(EuropaBuffer* buffer, uint32 offset
     descriptorWrite.pTexelBufferView = nullptr; // Optional
 
     vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
+}
+
+EuropaImageVk::~EuropaImageVk()
+{
+    if (!external)
+    {
+        vmaDestroyImage(m_device->m_allocator, m_image, m_alloc);
+    }
 }

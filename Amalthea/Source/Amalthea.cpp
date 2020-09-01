@@ -78,22 +78,6 @@ Amalthea::Amalthea(Europa& europaInstance, IoSurface& ioSurface)
 
 	m_swapChain = m_device->CreateSwapChain(swapChainCreateInfo);
 
-	// Create Renderpass
-	m_mainRenderPass = m_device->CreateRenderPassBuilder();
-	uint32 presentTarget = m_mainRenderPass->AddAttachment(EuropaAttachmentInfo{
-		EuropaImageFormat::BGRA8sRGB,
-		EuropaAttachmentLoadOp::Clear,
-		EuropaAttachmentStoreOp::Store,
-		EuropaAttachmentLoadOp::DontCare,
-		EuropaAttachmentStoreOp::DontCare,
-		EuropaImageLayout::Undefined,
-		EuropaImageLayout::Present
-		});
-	std::vector<EuropaAttachmentReference> attachments = { { presentTarget, EuropaImageLayout::ColorAttachment } };
-	uint32 forwardPass = m_mainRenderPass->AddSubpass(EuropaPipelineBindPoint::Graphics, attachments);
-	m_mainRenderPass->AddDependency(EuropaRenderPass::SubpassExternal, forwardPass, EuropaPipelineStageColorAttachmentOutput, EuropaAccessNone, EuropaPipelineStageColorAttachmentOutput, EuropaAccessColorAttachmentWrite);
-	m_mainRenderPass->CreateRenderpass();
-
 	// Create command pool & command lists
 	m_cmdpool = m_device->CreateCommandPool(requiredQueues[0]);
 
@@ -151,7 +135,6 @@ Amalthea::~Amalthea()
 	for (auto s : m_imageAvailableSemaphore) GanymedeDelete(s);
 	for (auto s : m_renderFinishedSemaphore) GanymedeDelete(s);
 	GanymedeDelete(m_cmdpool);
-	GanymedeDelete(m_mainRenderPass);
 	GanymedeDelete(m_swapChain);
 	GanymedeDelete(m_surface);
 	GanymedeDelete(m_cmdQueue);

@@ -6,6 +6,9 @@
 #include <vector>
 #include <optional>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/glm.hpp>
 
 class IoSurface;
@@ -116,6 +119,9 @@ GANYMEDE_ENUM(EuropaImageFormat,
 	(BC4RGBASnorm)
 	(BC5RGBAUnorm)
 	(BC5RGBASnorm)
+
+	(D16Unorm)
+	(D32F)
 )
 
 GANYMEDE_ENUM_NUMBERED(EuropaColorSpace,
@@ -154,6 +160,12 @@ GANYMEDE_ENUM_FLAGS(EuropaSurfaceTransform,
 	((HorizontalMirrorRotate180, 0x00000040))
 	((HorizontalMirrorRotate270, 0x00000080))
 	((Inherit, 0x00000100))
+)
+
+GANYMEDE_ENUM_NUMBERED(EuropaImageType,
+	((Image1D, 0))
+	((Image2D, 1))
+	((Image3D, 2))
 )
 
 GANYMEDE_ENUM_NUMBERED(EuropaImageViewType,
@@ -211,8 +223,8 @@ GANYMEDE_ENUM_NUMBERED(EuropaAttachmentStoreOp,
 )
 
 GANYMEDE_ENUM_NUMBERED(EuropaImageLayout,
-	((Undefined, 0))
-	((General, 1))
+((Undefined, 0))
+((General, 1))
 	((ColorAttachment, 2))
 	((DepthStencilAttachment, 3))
 	((DepthStencilReadOnly, 4))
@@ -222,6 +234,20 @@ GANYMEDE_ENUM_NUMBERED(EuropaImageLayout,
 	((Preinitialized, 8))
 	((Present, 1000001002))
 	((SharedPresent, 1000111000))
+)
+
+GANYMEDE_ENUM_FLAGS(EuropaImageUsage,
+	((Undefined, 0))
+	((TransferSrc, 0x00000001))
+	((TransferDst, 0x00000002))
+	((Sampled, 0x00000004))
+	((Storage, 0x00000008))
+	((ColorAttachment, 0x00000010))
+	((DepthStencilAttachment, 0x00000020))
+	((TransientAttachment, 0x00000040))
+	((InputAttachment, 0x00000080))
+	((ShadingRateNV, 0x00000100))
+	((FragmentDensityMap, 0x00000200))
 )
 
 GANYMEDE_ENUM_NUMBERED(EuropaPipelineBindPoint,
@@ -380,6 +406,21 @@ public:
 	virtual ~EuropaQueue() {};
 };
 
+struct EuropaImageInfo
+{
+	EuropaImageType type;
+	EuropaImageFormat format;
+	uint32 width = 1;
+	uint32 height = 1;
+	uint32 depth = 1;
+	uint32 numMipLevels = 1;
+	uint32 numArrayLayers = 1;
+	EuropaImageUsage usage;
+	EuropaImageLayout initialLayout;
+	EuropaMemoryUsage memoryUsage;
+	bool exclusive = true;
+};
+
 class EuropaImage
 {
 public:
@@ -476,6 +517,13 @@ struct EuropaRasterizerStateInfo
 	bool counterClockwise = true;
 };
 
+struct EuropaDepthStencilStateInfo
+{
+	bool enableDepthTest = false;
+	bool enableDepthWrite = false;
+	// Fixme: support different depth compares
+};
+
 class EuropaDescriptorSetLayout
 {
 public:
@@ -522,7 +570,7 @@ public:
 	static const uint32 SubpassExternal = 0xFFFFFFFF;
 
 	virtual uint32 AddAttachment(EuropaAttachmentInfo& attachment) = 0;
-	virtual uint32 AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments) = 0;
+	virtual uint32 AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments, EuropaAttachmentReference* depthAttachment = nullptr) = 0;
 	virtual void AddDependency(uint32 srcPass, uint32 dstPass, EuropaPipelineStage srcStage, EuropaAccess srcAccess, EuropaPipelineStage dstStage, EuropaAccess dstAccess) = 0;
 	virtual void CreateRenderpass() = 0;
 
@@ -559,7 +607,7 @@ struct EuropaGraphicsPipelineCreateInfo
 	EuropaScissor scissor;
 	EuropaRasterizerStateInfo rasterizer;
 	// FIXME: Support multi sample
-	// FIXME: Support depth sencil
+	EuropaDepthStencilStateInfo depthStencil;
 	// FIXME: Support blending
 	// FIXME: Support dynamic state
 	EuropaPipelineLayout* layout = nullptr;
@@ -596,12 +644,17 @@ public:
 	virtual ~EuropaDescriptorSet() {};
 };
 
+typedef union EuropaClearValue {
+	glm::vec4 color;
+	glm::vec2 depthStencil;
+} EuropaClearValue;
+
 class EuropaCmdlist
 {
 public:
 	virtual void Begin() = 0;
 	virtual void End() = 0;
-	virtual void BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, glm::vec4 clearColor) = 0;
+	virtual void BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor) = 0;
 	virtual void EndRenderpass() = 0;
 	virtual void BindPipeline(EuropaGraphicsPipeline* pipeline) = 0;
 	virtual void DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance) = 0;
@@ -655,6 +708,7 @@ public:
 	virtual EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface) = 0;
 	virtual EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args) = 0;
 	virtual std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain) = 0;
+	virtual EuropaImage* CreateImage(EuropaImageInfo& args) = 0;
 	virtual EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args) = 0;
 	virtual EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args) = 0;
 	virtual EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;

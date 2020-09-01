@@ -2,19 +2,16 @@
 
 #include "Amalthea.h"
 
-class AmaltheaForwardRP : public AmaltheaBehaviors
+struct AmaltheaBuffer
 {
-private:
-    Amalthea& m_amalthea;
-
-    EuropaRenderPass* m_renderPass;
-
-    EuropaGraphicsPipeline* m_pipeline;
-    EuropaGraphicsPipeline* m_pipelineLayout;
-
-    std::vector<EuropaDescriptorSet*> m_descSets;
-    std::vector<EuropaFramebuffer*> m_frameBuffers;
-
-public:
-    AmaltheaForwardRP(Amalthea& amalthea);
+    EuropaBuffer* buffer;
+    uint32 offset;
+    EuropaImageFormat format;
 };
+
+struct AmaltheaImage
+{
+    EuropaImage* image;
+    EuropaImageView* view;
+};
+
