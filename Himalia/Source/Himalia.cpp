@@ -120,39 +120,30 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
 
                 if (tokens[2].compare("x") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::position) + offsetof(glm::vec3, glm::vec3::x));
-                
-                if (tokens[2].compare("y") == 0)
+                else if (tokens[2].compare("y") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::position) + offsetof(glm::vec3, glm::vec3::y));
-                
-                if (tokens[2].compare("z") == 0)
+                else if (tokens[2].compare("z") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::position) + offsetof(glm::vec3, glm::vec3::z));
-
-                if (tokens[2].compare("nx") == 0)
+                else if (tokens[2].compare("nx") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::normal) + offsetof(glm::vec3, glm::vec3::x));
-
-                if (tokens[2].compare("ny") == 0)
+                else if (tokens[2].compare("ny") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::normal) + offsetof(glm::vec3, glm::vec3::y));
-
-                if (tokens[2].compare("nz") == 0)
+                else if (tokens[2].compare("nz") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::normal) + offsetof(glm::vec3, glm::vec3::z));
-
-                if (tokens[2].compare("s") == 0)
+                else if (tokens[2].compare("s") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::uv) + offsetof(glm::vec2, glm::vec2::s));
-
-                if (tokens[2].compare("t") == 0)
+                else if (tokens[2].compare("t") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::uv) + offsetof(glm::vec2, glm::vec2::t));
-
-                if (tokens[2].compare("red") == 0)
+                else if (tokens[2].compare("red") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::color) + offsetof(glm::vec4, glm::vec4::r));
-
-                if (tokens[2].compare("green") == 0)
+                else if (tokens[2].compare("green") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::color) + offsetof(glm::vec4, glm::vec4::g));
-
-                if (tokens[2].compare("blue") == 0)
+                else if (tokens[2].compare("blue") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::color) + offsetof(glm::vec4, glm::vec4::b));
-
-                if (tokens[2].compare("alpha") == 0)
+                else if (tokens[2].compare("alpha") == 0)
                     elements[index].offsets.push_back(offsetof(RichVertex, RichVertex::color) + offsetof(glm::vec4, glm::vec4::a));
+                else
+                    elements[index].offsets.push_back(0xFFFFFFFF);
             }
             else if (tokens[0].compare("end_header") == 0)
             {
@@ -219,7 +210,7 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
                             file >> value;
                         }
                     
-                        *(reinterpret_cast<float*>(reinterpret_cast<uint8*>(&v) + e.offsets[j])) = value;
+                        if (e.offsets[j] != 0xFFFFFFFF) *(reinterpret_cast<float*>(reinterpret_cast<uint8*>(&v) + e.offsets[j])) = value;
                     }
 
                     mesh.position.push_back(v.position);
