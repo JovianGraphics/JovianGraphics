@@ -24,9 +24,11 @@ public:
 	VkSurfaceKHR m_surface;
 };
 
-class EuropaDeviceVk : public EuropaDevice
+class EuropaDeviceVk : public EuropaDevice, public std::enable_shared_from_this<EuropaDeviceVk>
 {
 public:
+	typedef std::shared_ptr<EuropaDeviceVk> Ref;
+
 	VkInstance& m_instance;
 	VmaAllocator m_allocator;
 	VkPhysicalDeviceProperties m_properties;
@@ -41,9 +43,9 @@ public:
 	EuropaQueue* GetQueue(EuropaQueueFamilyProperties& queue);
 	EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface);
 	EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args);
-	std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain);
-	EuropaImage* CreateImage(EuropaImageInfo& args);
-	EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args);
+	std::vector<EuropaImage::Ref> GetSwapChainImages(EuropaSwapChain* swapChain);
+	EuropaImage::Ref CreateImage(EuropaImageInfo& args);
+	EuropaImageView::Ref CreateImageView(EuropaImageViewCreateInfo& args);
 	EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args);
 	EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size);
 	EuropaDescriptorSetLayout* CreateDescriptorSetLayout();
@@ -51,7 +53,7 @@ public:
 	EuropaPipelineLayout* CreatePipelineLayout(EuropaPipelineLayoutInfo& args);
 	EuropaRenderPass* CreateRenderPassBuilder();
 	EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args);
-	EuropaCommandPool* CreateCommandPool(EuropaQueueFamilyProperties& queue);
+	EuropaCommandPool* CreateCommandPool(EuropaQueue* queue);
 	EuropaSemaphore* CreateSema();
 	EuropaFence* CreateFence(bool createSignaled = false);
 	void WaitIdle();
@@ -68,10 +70,10 @@ public:
 class EuropaSwapChainVk : public EuropaSwapChain
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkSwapchainKHR m_swapchain;
 
-	uint32 AcquireNextImage(EuropaSemaphore* semaphore);
+	int32 AcquireNextImage(EuropaSemaphore* semaphore);
 
 	~EuropaSwapChainVk();
 };
@@ -79,7 +81,7 @@ public:
 class EuropaBufferVk : public EuropaBuffer
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	EuropaBufferInfo m_info;
 	VkBuffer m_buffer;
 	VmaAllocation m_allocation;
@@ -91,31 +93,37 @@ public:
 	~EuropaBufferVk();
 };
 
-class EuropaImageVk : public EuropaImage
+class EuropaImageVk : public EuropaImage, public std::enable_shared_from_this<EuropaImageVk>
 {
 public:
-	EuropaDeviceVk* m_device;
+	typedef std::shared_ptr<EuropaImageVk> Ref;
+
+	EuropaDeviceVk::Ref m_device;
 	VkImage m_image;
 	VmaAllocation m_alloc;
 
 	bool external = true;
 
+	EuropaImageVk() : std::enable_shared_from_this<EuropaImageVk>() {};
 	~EuropaImageVk();
 };
 
-class EuropaImageViewVk : public EuropaImageView
+class EuropaImageViewVk : public EuropaImageView, public std::enable_shared_from_this<EuropaImageViewVk>
 {
 public:
-	EuropaDeviceVk* m_device;
+	typedef std::shared_ptr<EuropaImageViewVk> Ref;
+
+	EuropaDeviceVk::Ref m_device;
 	VkImageView m_view;
 
+	EuropaImageViewVk() : std::enable_shared_from_this<EuropaImageViewVk>() {};
 	~EuropaImageViewVk();
 };
 
 class EuropaFramebufferVk : public EuropaFramebuffer
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkFramebuffer m_framebuffer;
 
 	~EuropaFramebufferVk();
@@ -124,7 +132,7 @@ public:
 class EuropaShaderModuleVk : public EuropaShaderModule
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkShaderModule m_shaderModule;
 
 	~EuropaShaderModuleVk();
@@ -133,7 +141,7 @@ public:
 class EuropaQueueVk : public EuropaQueue
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkQueue m_queue;
 
 	void Submit(
@@ -150,7 +158,7 @@ public:
 class EuropaDescriptorSetVk : public EuropaDescriptorSet
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkDescriptorSet m_set;
 
 	void SetUniformBuffer(EuropaBuffer* buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement);
@@ -161,7 +169,7 @@ public:
 class EuropaDescriptorPoolVk : public EuropaDescriptorPool
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkDescriptorPool m_pool;
 
 	EuropaDescriptorSet* AllocateDescriptorSet(EuropaDescriptorSetLayout* layout);
@@ -172,7 +180,7 @@ public:
 class EuropaCommandPoolVk : public EuropaCommandPool
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkCommandPool m_pool;
 
 	std::vector<EuropaCmdlist*> AllocateCommandBuffers(uint8 level, uint32 count);
@@ -182,7 +190,7 @@ public:
 class EuropaCmdlistVk : public EuropaCmdlist
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	EuropaCommandPoolVk* m_pool;
 	VkCommandBuffer m_cmdlist;
 
@@ -204,7 +212,7 @@ public:
 class EuropaSemaphoreVk : public EuropaSemaphore
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkSemaphore m_sema;
 
 	virtual ~EuropaSemaphoreVk();
@@ -213,7 +221,7 @@ public:
 class EuropaFenceVk : public EuropaFence
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkFence m_fence;
 
 	virtual ~EuropaFenceVk();
@@ -222,7 +230,7 @@ public:
 class EuropaDescriptorSetLayoutVk : public EuropaDescriptorSetLayout
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	
 	std::vector<VkDescriptorSetLayoutBinding> m_bindings;
 	VkDescriptorSetLayout m_setLayout;
@@ -237,7 +245,7 @@ public:
 class EuropaPipelineLayoutVk : public EuropaPipelineLayout
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkPipelineLayout m_layout;
 
 	~EuropaPipelineLayoutVk();
@@ -253,7 +261,7 @@ private:
 	std::vector<VkSubpassDependency> dependencies;
 
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkRenderPass m_renderPass;
 	
 	uint32 AddAttachment(EuropaAttachmentInfo& attachment);
@@ -267,13 +275,13 @@ public:
 class EuropaGraphicsPipelineVk : public EuropaGraphicsPipeline
 {
 public:
-	EuropaDeviceVk* m_device;
+	EuropaDeviceVk::Ref m_device;
 	VkPipeline m_pipeline;
 
 	virtual ~EuropaGraphicsPipelineVk();
 };
 
-class EuropaVk : public Europa
+class EuropaVk : public Europa, public std::enable_shared_from_this<EuropaVk>
 {
 private:
 	VkDebugUtilsMessengerEXT debugMessenger;
@@ -284,12 +292,14 @@ private:
 	void SetupDebugMessenger();
 
 public:
+	typedef std::shared_ptr<Europa> Ref;
+
 	VkInstance m_instance;
 
 	EuropaVk();
 	~EuropaVk();
 
-	std::vector<EuropaDevice*> GetDevices();
+	std::vector<EuropaDevice::Ref> GetDevices();
 	EuropaSurface* CreateSurface(IoSurface* ioSurface);
 };
 

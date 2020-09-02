@@ -80,7 +80,6 @@ IoSurfaceWin32::~IoSurfaceWin32()
 void IoSurfaceWin32::Run(std::function<void()> loopFunc)
 {
     MSG msg;
-    WNDCLASS wincl;
 
     while (Running && GetMessage(&msg, m_hwnd, 0, 0))
     {
@@ -89,12 +88,12 @@ void IoSurfaceWin32::Run(std::function<void()> loopFunc)
 
         loopFunc();
     }
-
-    OnClose();
 }
 
-void IoSurfaceWin32::OnClose()
+void IoSurfaceWin32::WaitForEvent()
 {
+    std::unique_lock<std::mutex> lk(m_eventLock);
+    m_eventCV.wait(lk);
 }
 
 glm::uvec2 IoSurfaceWin32::GetSize()
@@ -109,7 +108,12 @@ LRESULT IoSurfaceWin32::WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_CLOSE:
         Running = false;
         break;
+    case WM_SIZE:
+        this->size = glm::uvec2(LOWORD(lParam), HIWORD(lParam));
+        break;
     }
+
+    m_eventCV.notify_all();
 
     return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }

@@ -23,13 +23,13 @@ int AppMain(IoSurface& s)
 	Europa& europa = EuropaVk();
 
 	// Enumerate and select a Device
-	std::vector<EuropaDevice*> devices = europa.GetDevices();
-	for (EuropaDevice* d : devices)
+	std::vector<EuropaDevice::Ref> devices = europa.GetDevices();
+	for (EuropaDevice::Ref d : devices)
 	{
 		GanymedePrint d->GetName(), ":", EuropaDeviceTypeToString(d->GetType());
 	}
 
-	EuropaDevice* selectedDevice = devices[0];
+	EuropaDevice::Ref selectedDevice = devices[0];
 
 	// Create Surface and its respective Queues
 	EuropaSurface* surface = europa.CreateSurface(&s);
@@ -92,8 +92,8 @@ int AppMain(IoSurface& s)
 	EuropaSwapChain* swapChain = selectedDevice->CreateSwapChain(swapChainCreateInfo);
 
 	// Create swap chain Images & Image Views
-	std::vector<EuropaImage*> swapChainImages = selectedDevice->GetSwapChainImages(swapChain);
-	std::vector<EuropaImageView*> swapChainImageViews;
+	std::vector<EuropaImage::Ref> swapChainImages = selectedDevice->GetSwapChainImages(swapChain);
+	std::vector<EuropaImageView::Ref> swapChainImageViews;
 
 	for (auto image : swapChainImages)
 	{
@@ -127,7 +127,7 @@ int AppMain(IoSurface& s)
 
 	// Create Framebuffers
 	std::vector<EuropaFramebuffer*> framebuffers;
-	for (EuropaImageView* view : swapChainImageViews)
+	for (EuropaImageView::Ref view : swapChainImageViews)
 	{
 		EuropaFramebufferCreateInfo desc;
 		desc.attachments = { view };
@@ -191,7 +191,7 @@ int AppMain(IoSurface& s)
 	EuropaGraphicsPipeline* pipeline = selectedDevice->CreateGraphicsPipeline(pipelineDesc);
 
 	// Create Command Pools and Command Lists
-	EuropaCommandPool* cmdpool = selectedDevice->CreateCommandPool(requiredQueues[0]);
+	EuropaCommandPool* cmdpool = selectedDevice->CreateCommandPool(cmdQueue);
 
 	std::vector<EuropaCmdlist*> cmdlists = cmdpool->AllocateCommandBuffers(0, uint32(swapChainImages.size()));
 

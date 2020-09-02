@@ -5,13 +5,15 @@
 #include <glm/glm.hpp>
 
 #include <functional>
+#include <mutex>
+#include <condition_variable>
 
 class IoSurface
 {
 public:
 	virtual ~IoSurface() {};
 	virtual void Run(std::function<void()> loopFunc) = 0;
-	virtual void OnClose() = 0;
+	virtual void WaitForEvent() = 0;
 
 	virtual glm::uvec2 GetSize() = 0;
 };
@@ -26,6 +28,9 @@ private:
 	bool Running = true;
 
 	glm::uvec2 size = glm::uvec2(1280, 800);
+	
+	std::mutex m_eventLock;
+	std::condition_variable m_eventCV;
 
 public:
 	HWND m_hwnd;
@@ -35,8 +40,8 @@ public:
 	~IoSurfaceWin32();
 
 	void Run(std::function<void()> loopFunc);
-	void OnClose();
-
+	void WaitForEvent();
+	
 	glm::uvec2 GetSize();
 
 	LRESULT WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam);

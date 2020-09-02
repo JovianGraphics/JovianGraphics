@@ -5,7 +5,7 @@
 class EuropaTransferUtil
 {
 private:
-    EuropaDevice* m_device;
+    EuropaDevice::Ref m_device;
     EuropaQueue* m_queue;
     EuropaCmdlist* m_cmdlist;
 
@@ -21,7 +21,7 @@ public:
 
     void NewFrame();
 
-    EuropaTransferUtil(EuropaDevice* device, EuropaQueue* queue, EuropaCmdlist* cmdlist, uint32 stagingBufferSize);
+    EuropaTransferUtil(EuropaDevice::Ref device, EuropaQueue* queue, EuropaCmdlist* cmdlist, uint32 stagingBufferSize);
     ~EuropaTransferUtil();
 };
 
@@ -38,7 +38,7 @@ public:
     };
 
 private:
-    EuropaDevice* m_device;
+    EuropaDevice::Ref m_device;
 
     std::vector<EuropaBuffer*> m_streamingBuffers;
     uint32 m_currentFrame = 0;
@@ -49,6 +49,6 @@ public:
     Handle AllocateTransient(uint32 size);
     void NewFrame();
 
-    EuropaStreamingBuffer(EuropaDevice* device, uint32 frameCount);
+    EuropaStreamingBuffer(EuropaDevice::Ref device, uint32 frameCount);
     ~EuropaStreamingBuffer();
 };

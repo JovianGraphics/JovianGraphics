@@ -8,10 +8,18 @@ Amalthea::Amalthea(Europa& europaInstance, IoSurface& ioSurface)
     : m_europa(europaInstance)
 	, m_ioSurface(ioSurface)
 {
+}
+
+Amalthea::~Amalthea()
+{
+}
+
+void Amalthea::CreateDevice()
+{
 	// Enumerate devices & select one
 	m_allDevices = m_europa.GetDevices();
 
-	for (EuropaDevice* d : m_allDevices)
+	for (EuropaDevice::Ref d : m_allDevices)
 	{
 		GanymedePrint d->GetName(), ":", EuropaDeviceTypeToString(d->GetType());
 	}
@@ -59,6 +67,32 @@ Amalthea::Amalthea(Europa& europaInstance, IoSurface& ioSurface)
 		throw std::runtime_error("This device has a seperate graphics and present queue");
 	}
 
+	// Create command pool & command lists
+	m_cmdpool = m_device->CreateCommandPool(m_cmdQueue);
+
+	// Create Utils
+	m_copyCmdlist = m_cmdpool->AllocateCommandBuffers(0, 1)[0];
+	m_transferUtil = new EuropaTransferUtil(m_device, m_cmdQueue, m_copyCmdlist, 128 << 20); // 128M
+	m_streamingBuffer = new EuropaStreamingBuffer(m_device, MAX_FRAMES_IN_FLIGHT);
+
+	this->OnDeviceCreated();
+}
+
+void Amalthea::DestroyDevice()
+{
+	this->OnDeviceDestroy();
+
+	GanymedeDelete(m_transferUtil);
+	GanymedeDelete(m_streamingBuffer);
+	GanymedeDelete(m_cmdpool);
+	GanymedeDelete(m_surface);
+	GanymedeDelete(m_cmdQueue);
+}
+
+void Amalthea::CreateSwapChain()
+{
+	m_windowSize = m_ioSurface.GetSize();
+
 	// Create Swapchain
 	m_swapChainCaps = m_device->getSwapChainCapabilities(m_surface);
 
@@ -68,7 +102,7 @@ Amalthea::Amalthea(Europa& europaInstance, IoSurface& ioSurface)
 
 	EuropaSwapChainCreateInfo swapChainCreateInfo;
 	swapChainCreateInfo.colorSpace = EuropaColorSpace::GammaSRGB;
-	swapChainCreateInfo.extent = m_swapChainCaps.surfaceCaps.currentExtent;
+	swapChainCreateInfo.extent = m_windowSize;
 	swapChainCreateInfo.format = EuropaImageFormat::BGRA8sRGB;
 	swapChainCreateInfo.imageCount = 3;
 	swapChainCreateInfo.numLayers = 1;
@@ -78,15 +112,12 @@ Amalthea::Amalthea(Europa& europaInstance, IoSurface& ioSurface)
 
 	m_swapChain = m_device->CreateSwapChain(swapChainCreateInfo);
 
-	// Create command pool & command lists
-	m_cmdpool = m_device->CreateCommandPool(requiredQueues[0]);
-
 	// Create per-frame context
-	std::vector<EuropaImage*> swapChainImages = m_device->GetSwapChainImages(m_swapChain);
+	std::vector<EuropaImage::Ref> swapChainImages = m_device->GetSwapChainImages(m_swapChain);
 
 	std::vector<EuropaCmdlist*> cmdlists = m_cmdpool->AllocateCommandBuffers(0, uint32(swapChainImages.size()));
 
-	i = 0;
+	uint32 i = 0;
 	for (auto image : swapChainImages)
 	{
 		EuropaImageViewCreateInfo info{};
@@ -98,7 +129,7 @@ Amalthea::Amalthea(Europa& europaInstance, IoSurface& ioSurface)
 		info.numMipLevels = 1;
 		info.type = EuropaImageViewType::View2D;
 
-		EuropaImageView* view = m_device->CreateImageView(info);
+		EuropaImageView::Ref view = m_device->CreateImageView(info);
 
 		AmaltheaFrame f;
 		f.image = image;
@@ -121,28 +152,49 @@ Amalthea::Amalthea(Europa& europaInstance, IoSurface& ioSurface)
 		m_inFlightFences.push_back(m_device->CreateFence(true));
 	}
 
-	// Create Utils
-	m_copyCmdlist = m_cmdpool->AllocateCommandBuffers(0, 1)[0];
-	m_transferUtil = new EuropaTransferUtil(m_device, m_cmdQueue, m_copyCmdlist, 128 << 20); // 128M
-	m_streamingBuffer = new EuropaStreamingBuffer(m_device, MAX_FRAMES_IN_FLIGHT);
+	this->OnSwapChainCreated();
 }
 
-Amalthea::~Amalthea()
+void Amalthea::DestroySwapChain()
 {
-	GanymedeDelete(m_transferUtil);
-	GanymedeDelete(m_streamingBuffer);
+	this->OnSwapChainDestroy();
+
 	for (auto f : m_inFlightFences) GanymedeDelete(f);
 	for (auto s : m_imageAvailableSemaphore) GanymedeDelete(s);
 	for (auto s : m_renderFinishedSemaphore) GanymedeDelete(s);
-	GanymedeDelete(m_cmdpool);
+
+	m_inFlightFences.clear();
+	m_imagesInFlight.clear();
+	m_imageAvailableSemaphore.clear();
+	m_renderFinishedSemaphore.clear();
+	
+	m_frames.clear();
+
 	GanymedeDelete(m_swapChain);
-	GanymedeDelete(m_surface);
-	GanymedeDelete(m_cmdQueue);
+}
+
+void Amalthea::RecreateSwapChain()
+{
+	auto caps = m_device->getSwapChainCapabilities(m_surface);
+	while (caps.surfaceCaps.maxExtent == glm::uvec2(0))
+	{
+		m_windowSize = caps.surfaceCaps.maxExtent;
+		m_ioSurface.WaitForEvent();
+
+		caps = m_device->getSwapChainCapabilities(m_surface);
+		GanymedePrint "Swap Chain reports", caps.surfaceCaps.maxExtent.x, caps.surfaceCaps.maxExtent.y, " Window System reports", m_ioSurface.GetSize().x, m_ioSurface.GetSize().y;
+	}
+
+	m_device->WaitIdle();
+
+	DestroySwapChain();
+	CreateSwapChain();
 }
 
 void Amalthea::Run()
 {
-	this->OnDeviceCreated();
+	CreateDevice();
+	CreateSwapChain();
 
 	size_t currentFrame = 0;
 	size_t frames = 0;
@@ -156,7 +208,16 @@ void Amalthea::Run()
 		{
 			m_device->WaitForFences(1, &m_inFlightFences[currentFrame]);
 
-			uint32 imageIndex = m_swapChain->AcquireNextImage(m_imageAvailableSemaphore[currentFrame]);
+			bool resized = m_windowSize != m_ioSurface.GetSize();
+
+			int32 imageIndex = m_swapChain->AcquireNextImage(m_imageAvailableSemaphore[currentFrame]);
+
+			if (resized || imageIndex == EuropaSwapChain::NextImageOutOfDate || imageIndex == EuropaSwapChain::NextImageSubOptimal)
+			{
+				RecreateSwapChain();
+				currentFrame = 0;
+				continue;
+			}
 
 			if (m_imagesInFlight[imageIndex] != nullptr) m_device->WaitForFences(1, &m_imagesInFlight[imageIndex]);
 			m_imagesInFlight[imageIndex] = m_inFlightFences[currentFrame];
@@ -189,4 +250,7 @@ void Amalthea::Run()
 	rendering.join();
 
 	m_device->WaitIdle();
+
+	DestroySwapChain();
+	DestroyDevice();
 }

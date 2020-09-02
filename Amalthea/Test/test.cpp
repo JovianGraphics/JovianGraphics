@@ -34,11 +34,12 @@ public:
 	EuropaBuffer* m_vertexBuffer;
 	EuropaBuffer* m_indexBuffer;
 
-	EuropaImage* m_depthImage;
-	EuropaImageView* m_depthView;
+	EuropaImage::Ref m_depthImage;
+	EuropaImageView::Ref m_depthView;
 
 	EuropaRenderPass* m_mainRenderPass;
 
+	EuropaDescriptorPool* m_descPool;
 	EuropaGraphicsPipeline* m_pipeline;
 	EuropaPipelineLayout* m_pipelineLayout;
 
@@ -49,10 +50,50 @@ public:
 
 	void OnDeviceCreated()
 	{
+		// Load Model
+		HimaliaPlyModel plyModel;
+		plyModel.LoadFile("bun_zipper_res2.ply");
+
+		HimaliaVertexProperty vertexFormat[] = {
+			HimaliaVertexProperty::Position,
+			HimaliaVertexProperty::Color,
+			HimaliaVertexProperty::Normal
+		};
+		plyModel.mesh.BuildVertices<Vertex>(vertices, 3, vertexFormat);
+		plyModel.mesh.BuildIndices<uint16>(indices);
+
+		// Create & Upload geometry buffers
+		EuropaBufferInfo vertexBufferInfo;
+		vertexBufferInfo.exclusive = true;
+		vertexBufferInfo.size = uint32(vertices.size() * sizeof(Vertex));
+		vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferDst);
+		vertexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
+		m_vertexBuffer = m_device->CreateBuffer(vertexBufferInfo);
+
+		m_transferUtil->UploadToBufferEx(m_vertexBuffer, vertices.data(), uint32(vertices.size()));
+
+		EuropaBufferInfo indexBufferInfo;
+		indexBufferInfo.exclusive = true;
+		indexBufferInfo.size = uint32(indices.size() * sizeof(uint32));
+		indexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageIndex | EuropaBufferUsageTransferDst);
+		indexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
+		m_indexBuffer = m_device->CreateBuffer(indexBufferInfo);
+
+		m_transferUtil->UploadToBufferEx(m_indexBuffer, indices.data(), uint32(indices.size()));
+	}
+
+	void OnDeviceDestroy()
+	{
+		GanymedeDelete(m_vertexBuffer);
+		GanymedeDelete(m_indexBuffer);
+	}
+
+	void OnSwapChainCreated()
+	{
 		// Create Depth buffer
 		EuropaImageInfo depthInfo;
-		depthInfo.width = m_swapChainCaps.surfaceCaps.currentExtent.x;
-		depthInfo.height = m_swapChainCaps.surfaceCaps.currentExtent.y;
+		depthInfo.width = m_windowSize.x;
+		depthInfo.height = m_windowSize.y;
 		depthInfo.initialLayout = EuropaImageLayout::Undefined;
 		depthInfo.type = EuropaImageType::Image2D;
 		depthInfo.format = EuropaImageFormat::D16Unorm;
@@ -143,11 +184,11 @@ public:
 		pipelineDesc.vertexInput.attributeBindingCount = 3;
 		pipelineDesc.vertexInput.attributeBindings = attributes;
 		pipelineDesc.viewport.position = glm::vec2(0.0);
-		pipelineDesc.viewport.size = m_swapChainCaps.surfaceCaps.currentExtent;
+		pipelineDesc.viewport.size = m_windowSize;
 		pipelineDesc.viewport.minDepth = 0.0f;
 		pipelineDesc.viewport.maxDepth = 1.0f;
 		pipelineDesc.scissor.position = glm::vec2(0.0);
-		pipelineDesc.scissor.size = m_swapChainCaps.surfaceCaps.currentExtent;
+		pipelineDesc.scissor.size = m_windowSize;
 		pipelineDesc.depthStencil.enableDepthTest = true;
 		pipelineDesc.depthStencil.enableDepthWrite = true;
 		pipelineDesc.layout = m_pipelineLayout;
@@ -156,57 +197,13 @@ public:
 
 		m_pipeline = m_device->CreateGraphicsPipeline(pipelineDesc);
 
-		// Constants & Descriptor Pools / Sets
-		EuropaDescriptorPoolSizes descPoolSizes;
-		descPoolSizes.Uniform = uint32(m_frames.size());
-
-		EuropaDescriptorPool* pool = m_device->CreateDescriptorPool(descPoolSizes, uint32(m_frames.size()));
-
-		for (uint32 i = 0; i < m_frames.size(); i++)
-		{
-			m_descSets.push_back(pool->AllocateDescriptorSet(descLayout));
-		}
-
-		m_constantsSize = alignUp(uint32(sizeof(ShaderConstants)), m_device->GetMinUniformBufferOffsetAlignment());
-
-		// Load Model
-		HimaliaPlyModel plyModel;
-		plyModel.LoadFile("bun_zipper_res2.ply");
-
-		HimaliaVertexProperty vertexFormat[] = {
-			HimaliaVertexProperty::Position,
-			HimaliaVertexProperty::Color,
-			HimaliaVertexProperty::Normal
-		};
-		plyModel.mesh.BuildVertices<Vertex>(vertices, 3, vertexFormat);
-		plyModel.mesh.BuildIndices<uint16>(indices);
-
-		// Create & Upload geometry buffers
-		EuropaBufferInfo vertexBufferInfo;
-		vertexBufferInfo.exclusive = true;
-		vertexBufferInfo.size = uint32(vertices.size() * sizeof(Vertex));
-		vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferDst);
-		vertexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
-		m_vertexBuffer = m_device->CreateBuffer(vertexBufferInfo);
-
-		m_transferUtil->UploadToBufferEx(m_vertexBuffer, vertices.data(), uint32(vertices.size()));
-
-		EuropaBufferInfo indexBufferInfo;
-		indexBufferInfo.exclusive = true;
-		indexBufferInfo.size = uint32(indices.size() * sizeof(uint32));
-		indexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageIndex | EuropaBufferUsageTransferDst);
-		indexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
-		m_indexBuffer = m_device->CreateBuffer(indexBufferInfo);
-
-		m_transferUtil->UploadToBufferEx(m_indexBuffer, indices.data(), uint32(indices.size()));
-
 		// Create Framebuffers
 		for (AmaltheaFrame& ctx : m_frames)
 		{
 			EuropaFramebufferCreateInfo desc;
 			desc.attachments = { ctx.imageView, m_depthView };
-			desc.width = m_swapChainCaps.surfaceCaps.currentExtent.x;
-			desc.height = m_swapChainCaps.surfaceCaps.currentExtent.y;
+			desc.width = m_windowSize.x;
+			desc.height = m_windowSize.y;
 			desc.layers = 1;
 			desc.renderpass = m_mainRenderPass;
 
@@ -214,6 +211,29 @@ public:
 
 			m_frameBuffers.push_back(framebuffer);
 		}
+
+		// Constants & Descriptor Pools / Sets
+		EuropaDescriptorPoolSizes descPoolSizes;
+		descPoolSizes.Uniform = uint32(m_frames.size());
+
+		m_descPool = m_device->CreateDescriptorPool(descPoolSizes, uint32(m_frames.size()));
+
+		for (uint32 i = 0; i < m_frames.size(); i++)
+		{
+			m_descSets.push_back(m_descPool->AllocateDescriptorSet(descLayout));
+		}
+
+		m_constantsSize = alignUp(uint32(sizeof(ShaderConstants)), m_device->GetMinUniformBufferOffsetAlignment());
+	}
+
+	void OnSwapChainDestroy()
+	{
+		for (auto fb : m_frameBuffers) GanymedeDelete(fb);
+		m_frameBuffers.clear();
+
+		GanymedeDelete(m_pipeline);
+		GanymedeDelete(m_pipelineLayout);
+		GanymedeDelete(m_mainRenderPass);
 	}
 
 	void RenderFrame(AmaltheaFrame& ctx, float time)
@@ -221,9 +241,14 @@ public:
 		auto constantsHandle = m_streamingBuffer->AllocateTransient(m_constantsSize);
 		ShaderConstants* constants = constantsHandle.Map<ShaderConstants>();
 		
-		constants->modelMtx = glm::rotate(time, glm::vec3(0.0f, 1.0f, 0.0f));
-		constants->projViewMtx = glm::lookAt(glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-		constants->projViewMtx = glm::perspective(glm::radians(60.0f), float(m_swapChainCaps.surfaceCaps.currentExtent.x) / (m_swapChainCaps.surfaceCaps.currentExtent.y), 0.01f, 256.0f) * constants->projViewMtx;
+		constants->modelMtx = glm::scale(glm::rotate(time, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(3.0, 3.0, 3.0));
+
+		glm::mat4 viewMtx = glm::lookAt(glm::vec3(0.0, sin(time * 0.3), -1.0), glm::vec3(0.0, 0.3, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		glm::mat4 projMtx = glm::perspective(glm::radians(60.0f), float(m_windowSize.x) / (m_windowSize.y), 0.01f, 256.0f);
+
+		projMtx[1].y = -projMtx[1].y;
+
+		constants->projViewMtx = projMtx * viewMtx;
 
 		constantsHandle.Unmap();
 
@@ -234,7 +259,7 @@ public:
 		clearValue[1].depthStencil = glm::vec2(1.0, 0.0);
 
 		ctx.cmdlist->Begin();
-		ctx.cmdlist->BeginRenderpass(m_mainRenderPass, m_frameBuffers[ctx.frameIndex], glm::ivec2(0), glm::uvec2(m_swapChainCaps.surfaceCaps.currentExtent), 2, clearValue);
+		ctx.cmdlist->BeginRenderpass(m_mainRenderPass, m_frameBuffers[ctx.frameIndex], glm::ivec2(0), glm::uvec2(m_windowSize), 2, clearValue);
 		ctx.cmdlist->BindPipeline(m_pipeline);
 		ctx.cmdlist->BindVertexBuffer(m_vertexBuffer, 0, 0);
 		ctx.cmdlist->BindIndexBuffer(m_indexBuffer, 0, EuropaImageFormat::R16UI);
@@ -246,16 +271,6 @@ public:
 
 	~TestApp()
 	{
-		vertices.clear();
-		indices.clear();
-		for (auto fb : m_frameBuffers) GanymedeDelete(fb);
-		GanymedeDelete(m_vertexBuffer);
-		GanymedeDelete(m_indexBuffer);
-		GanymedeDelete(m_pipeline);
-		GanymedeDelete(m_pipelineLayout);
-		GanymedeDelete(m_mainRenderPass);
-		GanymedeDelete(m_depthView);
-		GanymedeDelete(m_depthImage);
 	}
 
 	TestApp(Europa& e, IoSurface& s) : Amalthea(e, s) {};

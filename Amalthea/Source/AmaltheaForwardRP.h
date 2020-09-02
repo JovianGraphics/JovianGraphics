@@ -11,7 +11,7 @@ struct AmaltheaBuffer
 
 struct AmaltheaImage
 {
-    EuropaImage* image;
-    EuropaImageView* view;
+    EuropaImage::Ref image;
+    EuropaImageView::Ref view;
 };
 

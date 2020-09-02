@@ -27,7 +27,7 @@ void EuropaTransferUtil::NewFrame()
 {
 }
 
-EuropaTransferUtil::EuropaTransferUtil(EuropaDevice* device, EuropaQueue* queue, EuropaCmdlist* cmdlist, uint32 stagingBufferSize)
+EuropaTransferUtil::EuropaTransferUtil(EuropaDevice::Ref device, EuropaQueue* queue, EuropaCmdlist* cmdlist, uint32 stagingBufferSize)
     : m_device(device)
     , m_queue(queue)
     , m_cmdlist(cmdlist)
@@ -64,7 +64,7 @@ void EuropaStreamingBuffer::NewFrame()
     m_currentFrameOffset = 0;
 }
 
-EuropaStreamingBuffer::EuropaStreamingBuffer(EuropaDevice* device, uint32 frameCount)
+EuropaStreamingBuffer::EuropaStreamingBuffer(EuropaDevice::Ref device, uint32 frameCount)
     : m_device(device)
     , m_frameCount(frameCount)
 {

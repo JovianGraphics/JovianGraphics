@@ -5,8 +5,8 @@
 
 struct AmaltheaFrame
 {
-    EuropaImage* image;
-    EuropaImageView* imageView;
+    EuropaImage::Ref image;
+    EuropaImageView::Ref imageView;
     EuropaCmdlist* cmdlist;
     uint32 frameIndex;
 };
@@ -15,6 +15,9 @@ class AmaltheaBehaviors
 {
 public:
     virtual void OnDeviceCreated() = 0;
+    virtual void OnDeviceDestroy() = 0;
+    virtual void OnSwapChainCreated() = 0;
+    virtual void OnSwapChainDestroy() = 0;
     virtual void RenderFrame(AmaltheaFrame& ctx, float time) = 0;
 };
 
@@ -27,8 +30,10 @@ protected:
     Europa& m_europa;
     IoSurface& m_ioSurface;
 
-    std::vector<EuropaDevice*> m_allDevices;
-    EuropaDevice* m_device = nullptr;
+    glm::uvec2 m_windowSize = glm::uvec2(0);
+
+    std::vector<EuropaDevice::Ref> m_allDevices;
+    EuropaDevice::Ref m_device = nullptr;
 
     EuropaSurface* m_surface = nullptr;
 
@@ -51,9 +56,16 @@ protected:
     EuropaTransferUtil* m_transferUtil;
     EuropaStreamingBuffer* m_streamingBuffer;
 
+private:
+    void CreateDevice();
+    void DestroyDevice();
+    void CreateSwapChain();
+    void DestroySwapChain();
+    void RecreateSwapChain();
+
 public:
     void Run();
 
     Amalthea(Europa& europaInstance, IoSurface& ioSurface);
-    ~Amalthea();
+    virtual ~Amalthea();
 };

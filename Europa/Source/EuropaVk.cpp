@@ -19,6 +19,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
     GanymedePrint "Vulkan Debug:", pCallbackData->pMessage;
 
+#ifdef _DEBUG
+    //throw std::runtime_error(pCallbackData->pMessage);
+#endif
+
     return VK_FALSE;
 }
 
@@ -61,6 +65,7 @@ void EuropaVk::SetupDebugMessenger() {
 }
 
 EuropaVk::EuropaVk()
+    : std::enable_shared_from_this<EuropaVk>()
 {
     // Create Info
     VkApplicationInfo appInfo = {};
@@ -156,9 +161,9 @@ EuropaVk::~EuropaVk()
     vkDestroyInstance(m_instance, nullptr);
 }
 
-std::vector<EuropaDevice*> EuropaVk::GetDevices()
+std::vector<EuropaDevice::Ref> EuropaVk::GetDevices()
 {
-    std::vector<EuropaDevice*> devices = {};
+    std::vector<EuropaDevice::Ref> devices = {};
 
     uint32 deviceCount = 0;
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
@@ -172,12 +177,12 @@ std::vector<EuropaDevice*> EuropaVk::GetDevices()
 
     for (VkPhysicalDevice& pDevice : vkPhyDevices)
     {
-        EuropaDeviceVk* device = new EuropaDeviceVk(m_instance);
+        EuropaDeviceVk::Ref device = std::make_shared<EuropaDeviceVk>(m_instance);
         device->m_phyDevice = pDevice;
         
         vkGetPhysicalDeviceProperties(pDevice, &device->m_properties);
 
-        devices.push_back((EuropaDevice*)(device));
+        devices.push_back(std::static_pointer_cast<EuropaDevice>(device));
     }
 
     return devices;
@@ -309,7 +314,8 @@ void EuropaDeviceVk::CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFam
 EuropaQueue* EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue)
 {
     EuropaQueueVk* vkQueue = new EuropaQueueVk;
-    vkQueue->m_device = this;
+    vkQueue->m_property = queue;
+    vkQueue->m_device = shared_from_this();
     
     vkGetDeviceQueue(m_device, queue.queueIndex, 0, &vkQueue->m_queue);
 
@@ -388,12 +394,12 @@ EuropaSwapChain* EuropaDeviceVk::CreateSwapChain(EuropaSwapChainCreateInfo& args
         throw std::runtime_error("failed to create swap chain!");
     }
 
-    swapChain->m_device = this;
+    swapChain->m_device = shared_from_this();
 
     return swapChain;
 }
 
-std::vector<EuropaImage*> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain* _swapChain)
+std::vector<EuropaImage::Ref> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain* _swapChain)
 {
     EuropaSwapChainVk* swapChain = reinterpret_cast<EuropaSwapChainVk*>(_swapChain);
 
@@ -403,11 +409,11 @@ std::vector<EuropaImage*> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain* _s
     std::vector<VkImage> swapChainImages(imageCount);
     vkGetSwapchainImagesKHR(m_device, swapChain->m_swapchain, &imageCount, swapChainImages.data());
 
-    std::vector<EuropaImage*> images;
+    std::vector<EuropaImage::Ref> images;
 
     for (VkImage& i : swapChainImages)
     {
-        EuropaImageVk* image = new EuropaImageVk();
+        EuropaImageVk::Ref image = std::make_shared<EuropaImageVk>();
         image->m_image = i;
 
         images.push_back(image);
@@ -416,7 +422,7 @@ std::vector<EuropaImage*> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain* _s
     return images;
 }
 
-EuropaImage* EuropaDeviceVk::CreateImage(EuropaImageInfo& args)
+EuropaImage::Ref EuropaDeviceVk::CreateImage(EuropaImageInfo& args)
 {
     VkImageCreateInfo imageInfo{};
 
@@ -433,11 +439,11 @@ EuropaImage* EuropaDeviceVk::CreateImage(EuropaImageInfo& args)
     imageInfo.usage = VkImageUsageFlagBits(args.usage);
     imageInfo.sharingMode = args.exclusive ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.flags = (+(args.usage & EuropaImageUsageDepthStencilAttachment)) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+    imageInfo.flags = 0;
 
-    EuropaImageVk* image = new EuropaImageVk();
+    EuropaImageVk::Ref image = std::make_shared<EuropaImageVk>();
     image->external = false;
-    image->m_device = this;
+    image->m_device = shared_from_this();
 
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VmaMemoryUsage(args.memoryUsage);
@@ -447,12 +453,16 @@ EuropaImage* EuropaDeviceVk::CreateImage(EuropaImageInfo& args)
     return image;
 }
 
-EuropaImageView* EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args)
+EuropaImageView::Ref EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args)
 {
-    EuropaImageVk* image = reinterpret_cast<EuropaImageVk*>(args.image);
+    EuropaImageVk::Ref image = std::static_pointer_cast<EuropaImageVk>(args.image);
 
-    EuropaImageViewVk* view = new EuropaImageViewVk();
-    view->m_device = this;
+    EuropaImageViewVk::Ref view = std::make_shared<EuropaImageViewVk>();
+    view->m_device = shared_from_this();
+
+    bool isDepth = false;
+    isDepth = isDepth || (args.format == EuropaImageFormat::D16Unorm);
+    isDepth = isDepth || (args.format == EuropaImageFormat::D32F);
 
     VkImageViewCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -463,7 +473,7 @@ EuropaImageView* EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args
     info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
     info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
     info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    info.subresourceRange.aspectMask = isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
     info.subresourceRange.baseMipLevel = args.minMipLevel;
     info.subresourceRange.levelCount = args.numMipLevels;
     info.subresourceRange.baseArrayLayer = args.minArrayLayer;
@@ -479,9 +489,9 @@ EuropaImageView* EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& args
 EuropaFramebuffer* EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo& args)
 {
     std::vector<VkImageView> attachments;
-    for (EuropaImageView* view : args.attachments)
+    for (EuropaImageView::Ref view : args.attachments)
     {
-        attachments.push_back(static_cast<EuropaImageViewVk*>(view)->m_view);
+        attachments.push_back(std::static_pointer_cast<EuropaImageViewVk>(view)->m_view);
     }
 
     VkFramebufferCreateInfo framebufferInfo{};
@@ -494,7 +504,7 @@ EuropaFramebuffer* EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo
     framebufferInfo.layers = args.layers;
 
     EuropaFramebufferVk* fb = new EuropaFramebufferVk();
-    fb->m_device = this;
+    fb->m_device = shared_from_this();
 
     if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &fb->m_framebuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to create framebuffer!");
@@ -511,7 +521,7 @@ EuropaShaderModule* EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, 
     createInfo.pCode = spvBinary;
 
     EuropaShaderModuleVk* m = new EuropaShaderModuleVk();
-    m->m_device = this;
+    m->m_device = shared_from_this();
 
     if (vkCreateShaderModule(m_device, &createInfo, nullptr, &m->m_shaderModule) != VK_SUCCESS) {
         throw std::runtime_error("failed to create shader module!");
@@ -524,7 +534,7 @@ EuropaDescriptorSetLayout* EuropaDeviceVk::CreateDescriptorSetLayout()
 {
     EuropaDescriptorSetLayoutVk* layout = new EuropaDescriptorSetLayoutVk();
 
-    layout->m_device = this;
+    layout->m_device = shared_from_this();
 
     return layout;
 }
@@ -629,7 +639,7 @@ EuropaDescriptorPool* EuropaDeviceVk::CreateDescriptorPool(EuropaDescriptorPoolS
     poolInfo.maxSets = maxSets;
 
     EuropaDescriptorPoolVk* pool = new EuropaDescriptorPoolVk();
-    pool->m_device = this;
+    pool->m_device = shared_from_this();
     
     if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &pool->m_pool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool!");
@@ -656,7 +666,7 @@ EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutI
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
     EuropaPipelineLayoutVk* layout = new EuropaPipelineLayoutVk();
-    layout->m_device = this;
+    layout->m_device = shared_from_this();
 
     if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &layout->m_layout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
@@ -669,7 +679,7 @@ EuropaRenderPass* EuropaDeviceVk::CreateRenderPassBuilder()
 {
     EuropaRenderPassVk* rp = new EuropaRenderPassVk();
 
-    rp->m_device = this;
+    rp->m_device = shared_from_this();
 
     return rp;
 }
@@ -740,9 +750,9 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
 
     VkViewport viewport{};
     viewport.x = args.viewport.position.x;
-    viewport.y = args.viewport.size.y - args.viewport.position.y;
+    viewport.y = args.viewport.position.y;
     viewport.width = args.viewport.size.x;
-    viewport.height = -args.viewport.size.y;
+    viewport.height = args.viewport.size.y;
     viewport.minDepth = args.viewport.minDepth;
     viewport.maxDepth = args.viewport.maxDepth;
 
@@ -833,7 +843,7 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
     pipelineInfo.basePipelineIndex = -1; // Optional
 
     EuropaGraphicsPipelineVk* pipeline = new EuropaGraphicsPipelineVk();
-    pipeline->m_device = this;
+    pipeline->m_device = shared_from_this();
 
     if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline->m_pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
@@ -842,15 +852,15 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
     return pipeline;
 }
 
-EuropaCommandPool* EuropaDeviceVk::CreateCommandPool(EuropaQueueFamilyProperties& queue)
+EuropaCommandPool* EuropaDeviceVk::CreateCommandPool(EuropaQueue* queue)
 {
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = queue.queueIndex;
+    poolInfo.queueFamilyIndex = queue->m_property.queueIndex;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     EuropaCommandPoolVk* pool = new EuropaCommandPoolVk();
-    pool->m_device = this;
+    pool->m_device = shared_from_this();
 
     if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &pool->m_pool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
@@ -865,7 +875,7 @@ EuropaSemaphore* EuropaDeviceVk::CreateSema()
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
     EuropaSemaphoreVk* semaphore = new EuropaSemaphoreVk();
-    semaphore->m_device = this;
+    semaphore->m_device = shared_from_this();
 
     if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &semaphore->m_sema) != VK_SUCCESS)
     {
@@ -885,7 +895,7 @@ EuropaFence* EuropaDeviceVk::CreateFence(bool createSignaled)
     }
 
     EuropaFenceVk* fence = new EuropaFenceVk();
-    fence->m_device = this;
+    fence->m_device = shared_from_this();
 
     if (vkCreateFence(m_device, &fenceInfo, nullptr, &fence->m_fence) != VK_SUCCESS)
     {
@@ -936,7 +946,7 @@ EuropaBuffer* EuropaDeviceVk::CreateBuffer(EuropaBufferInfo& args)
     allocInfo.usage = VmaMemoryUsage(args.memoryUsage);
 
     EuropaBufferVk* buffer = new EuropaBufferVk();
-    buffer->m_device = this;
+    buffer->m_device = shared_from_this();
     buffer->m_info = args;
 
     vmaCreateBuffer(m_allocator, &bufferInfo, &allocInfo, &buffer->m_buffer, &buffer->m_allocation, nullptr);
@@ -951,13 +961,14 @@ uint32 EuropaDeviceVk::GetMinUniformBufferOffsetAlignment()
 
 EuropaImageViewVk::~EuropaImageViewVk()
 {
-    EuropaDeviceVk* device = reinterpret_cast<EuropaDeviceVk*>(m_device);
+    EuropaDeviceVk::Ref device = std::static_pointer_cast<EuropaDeviceVk>(m_device);
 
     vkDestroyImageView(device->m_device, m_view, nullptr);
 }
 
 EuropaDeviceVk::EuropaDeviceVk(VkInstance& instance)
     : m_instance(instance)
+    , std::enable_shared_from_this<EuropaDeviceVk>()
 {
 }
 
@@ -967,11 +978,20 @@ EuropaDeviceVk::~EuropaDeviceVk()
         vkDestroyDevice(m_device, nullptr);
 }
 
-uint32 EuropaSwapChainVk::AcquireNextImage(EuropaSemaphore* semaphore)
+int32 EuropaSwapChainVk::AcquireNextImage(EuropaSemaphore* semaphore)
 {
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(m_device->m_device, m_swapchain, UINT64_MAX, static_cast<EuropaSemaphoreVk*>(semaphore)->m_sema, VK_NULL_HANDLE, &imageIndex);
-    return imageIndex;
+    VkResult r = vkAcquireNextImageKHR(m_device->m_device, m_swapchain, UINT64_MAX, static_cast<EuropaSemaphoreVk*>(semaphore)->m_sema, VK_NULL_HANDLE, &imageIndex);
+
+    if (r)
+    {
+        if (r == VK_SUBOPTIMAL_KHR)
+            return NextImageSubOptimal;
+        if (r == VK_ERROR_OUT_OF_DATE_KHR)
+            return NextImageOutOfDate;
+    }
+
+    return int32(imageIndex);
 }
 
 EuropaSwapChainVk::~EuropaSwapChainVk()

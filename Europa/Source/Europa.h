@@ -387,7 +387,10 @@ struct EuropaSwapChainCreateInfo
 class EuropaSwapChain
 {
 public:
-	virtual uint32 AcquireNextImage(EuropaSemaphore* semaphore) = 0;
+	static const int32 NextImageOutOfDate = -1000001004;
+	static const int32 NextImageSubOptimal = 1000001003;
+
+	virtual int32 AcquireNextImage(EuropaSemaphore* semaphore) = 0;
 
 	virtual ~EuropaSwapChain() {};
 };
@@ -395,6 +398,8 @@ public:
 class EuropaQueue
 {
 public:
+	EuropaQueueFamilyProperties m_property;
+
 	virtual void Submit(
 		uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, EuropaPipelineStage* waitStages,
 		uint32 cmdlistCount, EuropaCmdlist** cmdlists,
@@ -424,12 +429,14 @@ struct EuropaImageInfo
 class EuropaImage
 {
 public:
+	typedef std::shared_ptr<EuropaImage> Ref;
+
 	virtual ~EuropaImage() {};
 };
 
 struct EuropaImageViewCreateInfo
 {
-	EuropaImage* image;
+	EuropaImage::Ref image;
 	EuropaImageViewType type;
 	EuropaImageFormat format;
 	uint32 minMipLevel;
@@ -441,6 +448,8 @@ struct EuropaImageViewCreateInfo
 class EuropaImageView
 {
 public:
+	typedef std::shared_ptr<EuropaImageView> Ref;
+
 	virtual ~EuropaImageView() {};
 };
 
@@ -624,7 +633,7 @@ public:
 struct EuropaFramebufferCreateInfo
 {
 	EuropaRenderPass* renderpass;
-	std::vector<EuropaImageView*> attachments;
+	std::vector<EuropaImageView::Ref> attachments;
 	uint32 width;
 	uint32 height;
 	uint32 layers;
@@ -700,6 +709,8 @@ public:
 class EuropaDevice
 {
 public:
+	typedef std::shared_ptr<EuropaDevice> Ref;
+
 	virtual EuropaDeviceType GetType() = 0;
 	virtual std::string GetName() = 0;
 	virtual std::vector<EuropaQueueFamilyProperties> GetQueueFamilies(EuropaSurface* surface) = 0;
@@ -707,9 +718,9 @@ public:
 	virtual EuropaQueue* GetQueue(EuropaQueueFamilyProperties& queue) = 0;
 	virtual EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface) = 0;
 	virtual EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args) = 0;
-	virtual std::vector<EuropaImage*> GetSwapChainImages(EuropaSwapChain* swapChain) = 0;
-	virtual EuropaImage* CreateImage(EuropaImageInfo& args) = 0;
-	virtual EuropaImageView* CreateImageView(EuropaImageViewCreateInfo& args) = 0;
+	virtual std::vector<EuropaImage::Ref> GetSwapChainImages(EuropaSwapChain* swapChain) = 0;
+	virtual EuropaImage::Ref CreateImage(EuropaImageInfo& args) = 0;
+	virtual EuropaImageView::Ref CreateImageView(EuropaImageViewCreateInfo& args) = 0;
 	virtual EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args) = 0;
 	virtual EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;
 	virtual EuropaDescriptorSetLayout* CreateDescriptorSetLayout() = 0;
@@ -717,7 +728,7 @@ public:
 	virtual EuropaDescriptorPool* CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets) = 0;
 	virtual EuropaRenderPass* CreateRenderPassBuilder() = 0;
 	virtual EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args) = 0;
-	virtual EuropaCommandPool* CreateCommandPool(EuropaQueueFamilyProperties& queue) = 0;
+	virtual EuropaCommandPool* CreateCommandPool(EuropaQueue* queue) = 0;
 	virtual EuropaSemaphore* CreateSema() = 0;
 	virtual EuropaFence* CreateFence(bool createSignaled = false) = 0;
 	virtual void WaitIdle() = 0;
@@ -733,8 +744,10 @@ public:
 class Europa
 {
 public:
+	typedef std::shared_ptr<Europa> Ref;
+
 	virtual ~Europa() {};
 
-	virtual std::vector<EuropaDevice*> GetDevices() = 0;
+	virtual std::vector<EuropaDevice::Ref> GetDevices() = 0;
 	virtual EuropaSurface* CreateSurface(IoSurface* ioSurface) = 0;
 };
