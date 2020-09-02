@@ -2,6 +2,8 @@
 
 #include "config.h"
 
+#include <Ganymede/Source/Ganymede.h>
+
 #include <glm/glm.hpp>
 
 #include <functional>
@@ -11,6 +13,8 @@
 class IoSurface
 {
 public:
+	DECL_REF(IoSurface)
+
 	virtual ~IoSurface() {};
 	virtual void Run(std::function<void()> loopFunc) = 0;
 	virtual void WaitForEvent() = 0;
@@ -33,6 +37,8 @@ private:
 	std::condition_variable m_eventCV;
 
 public:
+	DECL_REF(IoSurfaceWin32)
+		
 	HWND m_hwnd;
 	HINSTANCE m_hInstance;
 

@@ -31,20 +31,20 @@ std::vector<uint16> indices;
 class TestApp : public Amalthea
 {
 public:
-	EuropaBuffer* m_vertexBuffer;
-	EuropaBuffer* m_indexBuffer;
+	EuropaBuffer::Ref m_vertexBuffer;
+	EuropaBuffer::Ref m_indexBuffer;
 
 	EuropaImage::Ref m_depthImage;
 	EuropaImageView::Ref m_depthView;
 
-	EuropaRenderPass* m_mainRenderPass;
+	EuropaRenderPass::Ref m_mainRenderPass;
 
-	EuropaDescriptorPool* m_descPool;
-	EuropaGraphicsPipeline* m_pipeline;
-	EuropaPipelineLayout* m_pipelineLayout;
+	EuropaDescriptorPool::Ref m_descPool;
+	EuropaGraphicsPipeline::Ref m_pipeline;
+	EuropaPipelineLayout::Ref m_pipelineLayout;
 
-	std::vector<EuropaDescriptorSet*> m_descSets;
-	std::vector<EuropaFramebuffer*> m_frameBuffers;
+	std::vector<EuropaDescriptorSet::Ref> m_descSets;
+	std::vector<EuropaFramebuffer::Ref> m_frameBuffers;
 
 	uint32 m_constantsSize;
 
@@ -84,8 +84,6 @@ public:
 
 	void OnDeviceDestroy()
 	{
-		GanymedeDelete(m_vertexBuffer);
-		GanymedeDelete(m_indexBuffer);
 	}
 
 	void OnSwapChainCreated()
@@ -161,10 +159,10 @@ public:
 		attributes[2].offset = offsetof(Vertex, Vertex::normal);
 		attributes[2].format = EuropaImageFormat::RGB32F;
 
-		EuropaShaderModule* shaderFragment = m_device->CreateShaderModule(shader_spv_unlit_frag, sizeof(shader_spv_unlit_frag));
-		EuropaShaderModule* shaderVertex = m_device->CreateShaderModule(shader_spv_unlit_vert, sizeof(shader_spv_unlit_vert));
+		EuropaShaderModule::Ref shaderFragment = m_device->CreateShaderModule(shader_spv_unlit_frag, sizeof(shader_spv_unlit_frag));
+		EuropaShaderModule::Ref shaderVertex = m_device->CreateShaderModule(shader_spv_unlit_vert, sizeof(shader_spv_unlit_vert));
 
-		EuropaDescriptorSetLayout* descLayout = m_device->CreateDescriptorSetLayout();
+		EuropaDescriptorSetLayout::Ref descLayout = m_device->CreateDescriptorSetLayout();
 		descLayout->UniformBuffer(0, 1, EuropaShaderStageAllGraphics);
 		descLayout->Build();
 
@@ -207,7 +205,7 @@ public:
 			desc.layers = 1;
 			desc.renderpass = m_mainRenderPass;
 
-			EuropaFramebuffer* framebuffer = m_device->CreateFramebuffer(desc);
+			EuropaFramebuffer::Ref framebuffer = m_device->CreateFramebuffer(desc);
 
 			m_frameBuffers.push_back(framebuffer);
 		}
@@ -228,12 +226,8 @@ public:
 
 	void OnSwapChainDestroy()
 	{
-		for (auto fb : m_frameBuffers) GanymedeDelete(fb);
 		m_frameBuffers.clear();
-
-		GanymedeDelete(m_pipeline);
-		GanymedeDelete(m_pipelineLayout);
-		GanymedeDelete(m_mainRenderPass);
+		m_descSets.clear();
 	}
 
 	void RenderFrame(AmaltheaFrame& ctx, float time)
@@ -273,10 +267,10 @@ public:
 	{
 	}
 
-	TestApp(Europa& e, IoSurface& s) : Amalthea(e, s) {};
+	TestApp(Europa& e, IoSurface::Ref s) : Amalthea(e, s) {};
 };
 
-int AppMain(IoSurface& s)
+int AppMain(IoSurface::Ref s)
 {
 	// Create Europa Instance
 	Europa& europa = EuropaVk();

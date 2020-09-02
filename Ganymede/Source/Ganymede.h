@@ -25,6 +25,10 @@ template <typename T> T alignUp(T x, T a)
     return r ? x + (a - r) : x;
 }
 
+#define DECL_REF(T) typedef std::shared_ptr<T> Ref;
+#define REF(T) std::shared_ptr<T>
+#define SHARE(T) std::enable_shared_from_this<T>
+
 // http://madebyevan.com/obscure-cpp-features/?viksra
 namespace __hidden__
 {

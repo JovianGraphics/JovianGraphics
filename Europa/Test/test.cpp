@@ -17,7 +17,7 @@ struct Vertex
 	glm::vec3 color;
 };
 
-int AppMain(IoSurface& s)
+int AppMain(IoSurface::Ref s)
 {
 	// Create Europa Instance
 	Europa& europa = EuropaVk();
@@ -32,7 +32,7 @@ int AppMain(IoSurface& s)
 	EuropaDevice::Ref selectedDevice = devices[0];
 
 	// Create Surface and its respective Queues
-	EuropaSurface* surface = europa.CreateSurface(&s);
+	EuropaSurface::Ref surface = europa.CreateSurface(s);
 
 	std::vector<EuropaQueueFamilyProperties> queueFamily = selectedDevice->GetQueueFamilies(surface);
 
@@ -59,7 +59,7 @@ int AppMain(IoSurface& s)
 	}
 	uint32_t queueCount[] = { 1 };
 
-	EuropaQueue* cmdQueue = nullptr;
+	EuropaQueue::Ref cmdQueue = nullptr;
 
 	if (requiredQueues[0].queueIndex == requiredQueues[1].queueIndex)
 	{
@@ -89,7 +89,7 @@ int AppMain(IoSurface& s)
 	swapChainCreateInfo.surface = surface;
 	swapChainCreateInfo.surfaceTransform = swapChainCaps.surfaceCaps.currentTransform;
 
-	EuropaSwapChain* swapChain = selectedDevice->CreateSwapChain(swapChainCreateInfo);
+	EuropaSwapChain::Ref swapChain = selectedDevice->CreateSwapChain(swapChainCreateInfo);
 
 	// Create swap chain Images & Image Views
 	std::vector<EuropaImage::Ref> swapChainImages = selectedDevice->GetSwapChainImages(swapChain);
@@ -110,7 +110,7 @@ int AppMain(IoSurface& s)
 	}
 
 	// Create Renderpass
-	EuropaRenderPass* renderpass = selectedDevice->CreateRenderPassBuilder();
+	EuropaRenderPass::Ref renderpass = selectedDevice->CreateRenderPassBuilder();
 	uint32 presentTarget = renderpass->AddAttachment(EuropaAttachmentInfo{
 		EuropaImageFormat::BGRA8sRGB,
 		EuropaAttachmentLoadOp::Clear,
@@ -126,7 +126,7 @@ int AppMain(IoSurface& s)
 	renderpass->CreateRenderpass();
 
 	// Create Framebuffers
-	std::vector<EuropaFramebuffer*> framebuffers;
+	std::vector<EuropaFramebuffer::Ref> framebuffers;
 	for (EuropaImageView::Ref view : swapChainImageViews)
 	{
 		EuropaFramebufferCreateInfo desc;
@@ -156,14 +156,14 @@ int AppMain(IoSurface& s)
 	attributes[1].offset = offsetof(Vertex, Vertex::color);
 	attributes[1].format = EuropaImageFormat::RGB32F;
 
-	EuropaShaderModule* shaderFragment = selectedDevice->CreateShaderModule(shader_spv_triangle_frag, sizeof(shader_spv_triangle_frag));
-	EuropaShaderModule* shaderVertex = selectedDevice->CreateShaderModule(shader_spv_triangle_vert, sizeof(shader_spv_triangle_vert));
+	EuropaShaderModule::Ref shaderFragment = selectedDevice->CreateShaderModule(shader_spv_triangle_frag, sizeof(shader_spv_triangle_frag));
+	EuropaShaderModule::Ref shaderVertex = selectedDevice->CreateShaderModule(shader_spv_triangle_vert, sizeof(shader_spv_triangle_vert));
 
-	EuropaDescriptorSetLayout* descLayout = selectedDevice->CreateDescriptorSetLayout();
+	EuropaDescriptorSetLayout::Ref descLayout = selectedDevice->CreateDescriptorSetLayout();
 	descLayout->UniformBuffer(0, 1, EuropaShaderStageAllGraphics);
 	descLayout->Build();
 
-	EuropaPipelineLayout* pipelineLayout = selectedDevice->CreatePipelineLayout(EuropaPipelineLayoutInfo{ 1, 0, &descLayout });
+	EuropaPipelineLayout::Ref pipelineLayout = selectedDevice->CreatePipelineLayout(EuropaPipelineLayoutInfo{ 1, 0, &descLayout });
 
 	EuropaGraphicsPipelineCreateInfo pipelineDesc{};
 
@@ -188,15 +188,15 @@ int AppMain(IoSurface& s)
 	pipelineDesc.renderpass = renderpass;
 	pipelineDesc.targetSubpass = forwardPass;
 
-	EuropaGraphicsPipeline* pipeline = selectedDevice->CreateGraphicsPipeline(pipelineDesc);
+	EuropaGraphicsPipeline::Ref pipeline = selectedDevice->CreateGraphicsPipeline(pipelineDesc);
 
 	// Create Command Pools and Command Lists
-	EuropaCommandPool* cmdpool = selectedDevice->CreateCommandPool(cmdQueue);
+	EuropaCommandPool::Ref cmdpool = selectedDevice->CreateCommandPool(cmdQueue);
 
-	std::vector<EuropaCmdlist*> cmdlists = cmdpool->AllocateCommandBuffers(0, uint32(swapChainImages.size()));
+	std::vector<EuropaCmdlist::Ref> cmdlists = cmdpool->AllocateCommandBuffers(0, uint32(swapChainImages.size()));
 
 	// Create Utils
-	EuropaCmdlist* copyCmdlist = cmdpool->AllocateCommandBuffers(0, 1)[0];
+	EuropaCmdlist::Ref copyCmdlist = cmdpool->AllocateCommandBuffers(0, 1)[0];
 	EuropaTransferUtil* transferUtil = new EuropaTransferUtil(selectedDevice, cmdQueue, copyCmdlist, 64 << 20); // 64M
 
 	// Geometry data
@@ -219,9 +219,9 @@ int AppMain(IoSurface& s)
 	EuropaDescriptorPoolSizes descPoolSizes;
 	descPoolSizes.Uniform = uint32(swapChainImages.size());
 
-	EuropaDescriptorPool* pool = selectedDevice->CreateDescriptorPool(descPoolSizes, uint32(swapChainImages.size()));
+	EuropaDescriptorPool::Ref pool = selectedDevice->CreateDescriptorPool(descPoolSizes, uint32(swapChainImages.size()));
 
-	std::vector<EuropaDescriptorSet*> descSets;
+	std::vector<EuropaDescriptorSet::Ref> descSets;
 
 	for (uint32 i = 0; i < swapChainImages.size(); i++)
 	{
@@ -235,7 +235,7 @@ int AppMain(IoSurface& s)
 	uniformBufferInfo.size = uint32(swapChainImages.size() * constantsSize);
 	uniformBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageUniform);
 	uniformBufferInfo.memoryUsage = EuropaMemoryUsage::Cpu2Gpu;
-	EuropaBuffer* uniformBuffer = selectedDevice->CreateBuffer(uniformBufferInfo);
+	EuropaBuffer::Ref uniformBuffer = selectedDevice->CreateBuffer(uniformBufferInfo);
 
 	{
 		uint8* mappedBuffer = uniformBuffer->Map<uint8>();
@@ -257,7 +257,7 @@ int AppMain(IoSurface& s)
 	vertexBufferInfo.size = uint32(vertices.size() * sizeof(Vertex));
 	vertexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferDst);
 	vertexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
-	EuropaBuffer* vertexBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
+	EuropaBuffer::Ref vertexBuffer = selectedDevice->CreateBuffer(vertexBufferInfo);
 	
 	transferUtil->UploadToBufferEx(vertexBuffer, vertices.data(), uint32(vertices.size()));
 
@@ -266,13 +266,13 @@ int AppMain(IoSurface& s)
 	indexBufferInfo.size = uint32(indices.size() * sizeof(uint32));
 	indexBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageIndex | EuropaBufferUsageTransferDst);
 	indexBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
-	EuropaBuffer* indexBuffer = selectedDevice->CreateBuffer(indexBufferInfo);
+	EuropaBuffer::Ref indexBuffer = selectedDevice->CreateBuffer(indexBufferInfo);
 
 	transferUtil->UploadToBufferEx(indexBuffer, indices.data(), uint32(indices.size()));
 
 	// Record Command Lists
 	uint32 i = 0;
-	for (EuropaCmdlist* cmdlist : cmdlists)
+	for (EuropaCmdlist::Ref cmdlist : cmdlists)
 	{
 		EuropaClearValue clearValue;
 		clearValue.color = glm::vec4(0.0, 0.0, 0.0, 1.0);
@@ -292,10 +292,10 @@ int AppMain(IoSurface& s)
 	// Create Synchronization primitives for Present
 	const int MAX_FRAMES_IN_FLIGHT = 3;
 
-	std::vector<EuropaSemaphore*> imageAvailableSemaphore;
-	std::vector<EuropaSemaphore*> renderFinishedSemaphore;
-	std::vector<EuropaFence*> inFlightFences;
-	std::vector<EuropaFence*> imagesInFlight;
+	std::vector<EuropaSemaphore::Ref> imageAvailableSemaphore;
+	std::vector<EuropaSemaphore::Ref> renderFinishedSemaphore;
+	std::vector<EuropaFence::Ref> inFlightFences;
+	std::vector<EuropaFence::Ref> imagesInFlight;
 	imagesInFlight.resize(swapChainImages.size(), nullptr);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -340,7 +340,7 @@ int AppMain(IoSurface& s)
 	});
 
 	// Window thread (main thread)
-	s.Run([]() {});
+	s->Run([]() {});
 
 	// Clean-up
 	running = false;
@@ -348,21 +348,9 @@ int AppMain(IoSurface& s)
 
 	selectedDevice->WaitIdle();
 
-	GanymedeDelete(transferUtil);
-	GanymedeDelete(vertexBuffer);
-	for (auto f : inFlightFences) GanymedeDelete(f);
-	for (auto s : imageAvailableSemaphore) GanymedeDelete(s);
-	for (auto s : renderFinishedSemaphore) GanymedeDelete(s);
-	GanymedeDelete(cmdpool);
-	for (auto fb : framebuffers) GanymedeDelete(fb);
-	GanymedeDelete(pipeline);
-	GanymedeDelete(renderpass);
-	GanymedeDelete(pipelineLayout);
-	GanymedeDelete(shaderFragment);
-	GanymedeDelete(shaderVertex);
-	GanymedeDelete(swapChain);
-	GanymedeDelete(surface);
-	GanymedeDelete(cmdQueue);
+	inFlightFences.clear();
+	imageAvailableSemaphore.clear();
+	renderFinishedSemaphore.clear();
 
 	return 0;
 }

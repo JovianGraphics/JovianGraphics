@@ -65,7 +65,7 @@ void EuropaVk::SetupDebugMessenger() {
 }
 
 EuropaVk::EuropaVk()
-    : std::enable_shared_from_this<EuropaVk>()
+    : SHARE(EuropaVk)()
 {
     // Create Info
     VkApplicationInfo appInfo = {};
@@ -188,11 +188,11 @@ std::vector<EuropaDevice::Ref> EuropaVk::GetDevices()
     return devices;
 }
 
-EuropaSurface* EuropaVk::CreateSurface(IoSurface* _ioSurface)
+EuropaSurface::Ref EuropaVk::CreateSurface(IoSurface::Ref _ioSurface)
 {
 #ifdef IO_WIN32
-    IoSurfaceWin32* ioSurface = reinterpret_cast<IoSurfaceWin32*>(_ioSurface);
-    EuropaSurfaceVk* surface = new EuropaSurfaceVk();
+    IoSurfaceWin32::Ref ioSurface = std::static_pointer_cast<IoSurfaceWin32>(_ioSurface);
+    EuropaSurfaceVk::Ref surface = std::make_shared<EuropaSurfaceVk>();
 
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -226,7 +226,7 @@ EuropaDeviceType EuropaDeviceVk::GetType()
         return EuropaDeviceType::Virtual;
 }
 
-std::vector<EuropaQueueFamilyProperties> EuropaDeviceVk::GetQueueFamilies(EuropaSurface* _surface)
+std::vector<EuropaQueueFamilyProperties> EuropaDeviceVk::GetQueueFamilies(EuropaSurface::Ref _surface)
 {
     std::vector<EuropaQueueFamilyProperties> families;
 
@@ -236,7 +236,7 @@ std::vector<EuropaQueueFamilyProperties> EuropaDeviceVk::GetQueueFamilies(Europa
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(m_phyDevice, &queueFamilyCount, queueFamilies.data());
 
-    VkSurfaceKHR surface = reinterpret_cast<EuropaSurfaceVk*>(_surface)->m_surface;
+    VkSurfaceKHR surface = std::static_pointer_cast<EuropaSurfaceVk>(_surface)->m_surface;
 
     uint32 index = 0;
     for (VkQueueFamilyProperties& prop : queueFamilies)
@@ -311,9 +311,9 @@ void EuropaDeviceVk::CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFam
     vmaCreateAllocator(&vmaCreateInfo, &m_allocator);
 }
 
-EuropaQueue* EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue)
+EuropaQueue::Ref EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue)
 {
-    EuropaQueueVk* vkQueue = new EuropaQueueVk;
+    EuropaQueueVk::Ref vkQueue = std::make_shared<EuropaQueueVk>();
     vkQueue->m_property = queue;
     vkQueue->m_device = shared_from_this();
     
@@ -322,11 +322,11 @@ EuropaQueue* EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue)
     return vkQueue;
 }
 
-EuropaSwapChainCapabilities EuropaDeviceVk::getSwapChainCapabilities(EuropaSurface* _surface)
+EuropaSwapChainCapabilities EuropaDeviceVk::getSwapChainCapabilities(EuropaSurface::Ref _surface)
 {
     EuropaSwapChainCapabilities caps;
 
-    EuropaSurfaceVk* surface = static_cast<EuropaSurfaceVk*>(_surface);
+    EuropaSurfaceVk::Ref surface = std::static_pointer_cast<EuropaSurfaceVk>(_surface);
     VkSurfaceCapabilitiesKHR vkCaps;
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_phyDevice, surface->m_surface, &vkCaps);
@@ -365,10 +365,10 @@ EuropaSwapChainCapabilities EuropaDeviceVk::getSwapChainCapabilities(EuropaSurfa
     return caps;
 }
 
-EuropaSwapChain* EuropaDeviceVk::CreateSwapChain(EuropaSwapChainCreateInfo& args)
+EuropaSwapChain::Ref EuropaDeviceVk::CreateSwapChain(EuropaSwapChainCreateInfo& args)
 {
-    EuropaSwapChainVk* swapChain = new EuropaSwapChainVk();
-    EuropaSurfaceVk* surface = static_cast<EuropaSurfaceVk*>(args.surface);
+    EuropaSwapChainVk::Ref swapChain = std::make_shared<EuropaSwapChainVk>();
+    EuropaSurfaceVk::Ref surface = std::static_pointer_cast<EuropaSurfaceVk>(args.surface);
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -399,9 +399,9 @@ EuropaSwapChain* EuropaDeviceVk::CreateSwapChain(EuropaSwapChainCreateInfo& args
     return swapChain;
 }
 
-std::vector<EuropaImage::Ref> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain* _swapChain)
+std::vector<EuropaImage::Ref> EuropaDeviceVk::GetSwapChainImages(EuropaSwapChain::Ref _swapChain)
 {
-    EuropaSwapChainVk* swapChain = reinterpret_cast<EuropaSwapChainVk*>(_swapChain);
+    EuropaSwapChainVk::Ref swapChain = std::static_pointer_cast<EuropaSwapChainVk>(_swapChain);
 
     uint32 imageCount = 0;
     vkGetSwapchainImagesKHR(m_device, swapChain->m_swapchain, &imageCount, nullptr);
@@ -486,7 +486,7 @@ EuropaImageView::Ref EuropaDeviceVk::CreateImageView(EuropaImageViewCreateInfo& 
     return view;
 }
 
-EuropaFramebuffer* EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo& args)
+EuropaFramebuffer::Ref EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo& args)
 {
     std::vector<VkImageView> attachments;
     for (EuropaImageView::Ref view : args.attachments)
@@ -496,14 +496,14 @@ EuropaFramebuffer* EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = static_cast<EuropaRenderPassVk*>(args.renderpass)->m_renderPass;
+    framebufferInfo.renderPass = std::static_pointer_cast<EuropaRenderPassVk>(args.renderpass)->m_renderPass;
     framebufferInfo.attachmentCount = uint32(attachments.size());
     framebufferInfo.pAttachments = attachments.data();
     framebufferInfo.width = args.width;
     framebufferInfo.height = args.height;
     framebufferInfo.layers = args.layers;
 
-    EuropaFramebufferVk* fb = new EuropaFramebufferVk();
+    EuropaFramebufferVk::Ref fb = std::make_shared<EuropaFramebufferVk>();
     fb->m_device = shared_from_this();
 
     if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &fb->m_framebuffer) != VK_SUCCESS) {
@@ -513,14 +513,14 @@ EuropaFramebuffer* EuropaDeviceVk::CreateFramebuffer(EuropaFramebufferCreateInfo
     return fb;
 }
 
-EuropaShaderModule* EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, uint32 size)
+EuropaShaderModule::Ref EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, uint32 size)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = size;
     createInfo.pCode = spvBinary;
 
-    EuropaShaderModuleVk* m = new EuropaShaderModuleVk();
+    EuropaShaderModuleVk::Ref m = std::make_shared<EuropaShaderModuleVk>();
     m->m_device = shared_from_this();
 
     if (vkCreateShaderModule(m_device, &createInfo, nullptr, &m->m_shaderModule) != VK_SUCCESS) {
@@ -530,16 +530,16 @@ EuropaShaderModule* EuropaDeviceVk::CreateShaderModule(const uint32* spvBinary, 
     return m;
 }
 
-EuropaDescriptorSetLayout* EuropaDeviceVk::CreateDescriptorSetLayout()
+EuropaDescriptorSetLayout::Ref EuropaDeviceVk::CreateDescriptorSetLayout()
 {
-    EuropaDescriptorSetLayoutVk* layout = new EuropaDescriptorSetLayoutVk();
+    EuropaDescriptorSetLayoutVk::Ref layout = std::make_shared<EuropaDescriptorSetLayoutVk>();
 
     layout->m_device = shared_from_this();
 
     return layout;
 }
 
-EuropaDescriptorPool* EuropaDeviceVk::CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets)
+EuropaDescriptorPool::Ref EuropaDeviceVk::CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets)
 {
     std::vector<VkDescriptorPoolSize> poolSizes;
     
@@ -638,7 +638,7 @@ EuropaDescriptorPool* EuropaDeviceVk::CreateDescriptorPool(EuropaDescriptorPoolS
 
     poolInfo.maxSets = maxSets;
 
-    EuropaDescriptorPoolVk* pool = new EuropaDescriptorPoolVk();
+    EuropaDescriptorPoolVk::Ref pool = std::make_shared<EuropaDescriptorPoolVk>();
     pool->m_device = shared_from_this();
     
     if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &pool->m_pool) != VK_SUCCESS) {
@@ -648,7 +648,7 @@ EuropaDescriptorPool* EuropaDeviceVk::CreateDescriptorPool(EuropaDescriptorPoolS
     return pool;
 }
 
-EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutInfo& args)
+EuropaPipelineLayout::Ref EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutInfo& args)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 
@@ -656,7 +656,7 @@ EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutI
 
     for (uint32 i = 0; i < args.setLayoutCount; i++)
     {
-        setLayouts.push_back(static_cast<EuropaDescriptorSetLayoutVk*>(args.descSetLayouts[i])->m_setLayout);
+        setLayouts.push_back(std::static_pointer_cast<EuropaDescriptorSetLayoutVk>(args.descSetLayouts[i])->m_setLayout);
     }
 
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -665,7 +665,7 @@ EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutI
     pipelineLayoutInfo.pushConstantRangeCount = args.pushConstantRangeCount;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-    EuropaPipelineLayoutVk* layout = new EuropaPipelineLayoutVk();
+    EuropaPipelineLayoutVk::Ref layout = std::make_shared<EuropaPipelineLayoutVk>();
     layout->m_device = shared_from_this();
 
     if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &layout->m_layout) != VK_SUCCESS) {
@@ -675,16 +675,16 @@ EuropaPipelineLayout* EuropaDeviceVk::CreatePipelineLayout(EuropaPipelineLayoutI
     return layout;
 }
 
-EuropaRenderPass* EuropaDeviceVk::CreateRenderPassBuilder()
+EuropaRenderPass::Ref EuropaDeviceVk::CreateRenderPassBuilder()
 {
-    EuropaRenderPassVk* rp = new EuropaRenderPassVk();
+    EuropaRenderPassVk::Ref rp = std::make_shared<EuropaRenderPassVk>();
 
     rp->m_device = shared_from_this();
 
     return rp;
 }
 
-EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args)
+EuropaGraphicsPipeline::Ref EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args)
 {
     VkGraphicsPipelineCreateInfo pipelineInfo{};
 
@@ -695,7 +695,7 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
         VkPipelineShaderStageCreateInfo shaderStageInfo{};
         shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStageInfo.stage = VkShaderStageFlagBits(args.stages[i].stage);
-        shaderStageInfo.module = static_cast<EuropaShaderModuleVk*>(args.stages[i].module)->m_shaderModule;
+        shaderStageInfo.module = std::static_pointer_cast<EuropaShaderModuleVk>(args.stages[i].module)->m_shaderModule;
         shaderStageInfo.pName = args.stages[i].entryPoint;
 
         stages.push_back(shaderStageInfo);
@@ -834,15 +834,15 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = nullptr; // Optional
 
-    pipelineInfo.layout = static_cast<EuropaPipelineLayoutVk*>(args.layout)->m_layout;
+    pipelineInfo.layout = std::static_pointer_cast<EuropaPipelineLayoutVk>(args.layout)->m_layout;
 
-    pipelineInfo.renderPass = static_cast<EuropaRenderPassVk*>(args.renderpass)->m_renderPass;
+    pipelineInfo.renderPass = std::static_pointer_cast<EuropaRenderPassVk>(args.renderpass)->m_renderPass;
     pipelineInfo.subpass = args.targetSubpass;
 
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional
 
-    EuropaGraphicsPipelineVk* pipeline = new EuropaGraphicsPipelineVk();
+    EuropaGraphicsPipelineVk::Ref pipeline = std::make_shared<EuropaGraphicsPipelineVk>();
     pipeline->m_device = shared_from_this();
 
     if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline->m_pipeline) != VK_SUCCESS) {
@@ -852,14 +852,14 @@ EuropaGraphicsPipeline* EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPip
     return pipeline;
 }
 
-EuropaCommandPool* EuropaDeviceVk::CreateCommandPool(EuropaQueue* queue)
+EuropaCommandPool::Ref EuropaDeviceVk::CreateCommandPool(EuropaQueue::Ref queue)
 {
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = queue->m_property.queueIndex;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-    EuropaCommandPoolVk* pool = new EuropaCommandPoolVk();
+    EuropaCommandPoolVk::Ref pool = std::make_shared<EuropaCommandPoolVk>();
     pool->m_device = shared_from_this();
 
     if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &pool->m_pool) != VK_SUCCESS) {
@@ -869,12 +869,12 @@ EuropaCommandPool* EuropaDeviceVk::CreateCommandPool(EuropaQueue* queue)
     return pool;
 }
 
-EuropaSemaphore* EuropaDeviceVk::CreateSema()
+EuropaSemaphore::Ref EuropaDeviceVk::CreateSema()
 {
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    EuropaSemaphoreVk* semaphore = new EuropaSemaphoreVk();
+    EuropaSemaphoreVk::Ref semaphore = std::make_shared<EuropaSemaphoreVk>();
     semaphore->m_device = shared_from_this();
 
     if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &semaphore->m_sema) != VK_SUCCESS)
@@ -885,7 +885,7 @@ EuropaSemaphore* EuropaDeviceVk::CreateSema()
     return semaphore;
 }
 
-EuropaFence* EuropaDeviceVk::CreateFence(bool createSignaled)
+EuropaFence::Ref EuropaDeviceVk::CreateFence(bool createSignaled)
 {
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -894,7 +894,7 @@ EuropaFence* EuropaDeviceVk::CreateFence(bool createSignaled)
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     }
 
-    EuropaFenceVk* fence = new EuropaFenceVk();
+    EuropaFenceVk::Ref fence = std::make_shared<EuropaFenceVk>();
     fence->m_device = shared_from_this();
 
     if (vkCreateFence(m_device, &fenceInfo, nullptr, &fence->m_fence) != VK_SUCCESS)
@@ -910,31 +910,31 @@ void EuropaDeviceVk::WaitIdle()
     vkDeviceWaitIdle(m_device);
 }
 
-void EuropaDeviceVk::WaitForFences(uint32 numFences, EuropaFence** _fences, bool waitAll, uint64 timeout)
+void EuropaDeviceVk::WaitForFences(uint32 numFences, EuropaFence::Ref* _fences, bool waitAll, uint64 timeout)
 {
     std::vector<VkFence> fences;
 
     for (uint32 i = 0; i < numFences; i++)
     {
-        fences.push_back(static_cast<EuropaFenceVk*>(_fences[i])->m_fence);
+        fences.push_back(std::static_pointer_cast<EuropaFenceVk>(_fences[i])->m_fence);
     }
 
     vkWaitForFences(m_device, numFences, fences.data(), waitAll, timeout);
 }
 
-void EuropaDeviceVk::ResetFences(uint32 numFences, EuropaFence** _fences)
+void EuropaDeviceVk::ResetFences(uint32 numFences, EuropaFence::Ref* _fences)
 {
     std::vector<VkFence> fences;
 
     for (uint32 i = 0; i < numFences; i++)
     {
-        fences.push_back(static_cast<EuropaFenceVk*>(_fences[i])->m_fence);
+        fences.push_back(std::static_pointer_cast<EuropaFenceVk>(_fences[i])->m_fence);
     }
 
     vkResetFences(m_device, numFences, fences.data());
 }
 
-EuropaBuffer* EuropaDeviceVk::CreateBuffer(EuropaBufferInfo& args)
+EuropaBuffer::Ref EuropaDeviceVk::CreateBuffer(EuropaBufferInfo& args)
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -945,7 +945,7 @@ EuropaBuffer* EuropaDeviceVk::CreateBuffer(EuropaBufferInfo& args)
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VmaMemoryUsage(args.memoryUsage);
 
-    EuropaBufferVk* buffer = new EuropaBufferVk();
+    EuropaBufferVk::Ref buffer = std::make_shared<EuropaBufferVk>();
     buffer->m_device = shared_from_this();
     buffer->m_info = args;
 
@@ -978,10 +978,10 @@ EuropaDeviceVk::~EuropaDeviceVk()
         vkDestroyDevice(m_device, nullptr);
 }
 
-int32 EuropaSwapChainVk::AcquireNextImage(EuropaSemaphore* semaphore)
+int32 EuropaSwapChainVk::AcquireNextImage(EuropaSemaphore::Ref semaphore)
 {
     uint32_t imageIndex;
-    VkResult r = vkAcquireNextImageKHR(m_device->m_device, m_swapchain, UINT64_MAX, static_cast<EuropaSemaphoreVk*>(semaphore)->m_sema, VK_NULL_HANDLE, &imageIndex);
+    VkResult r = vkAcquireNextImageKHR(m_device->m_device, m_swapchain, UINT64_MAX, std::static_pointer_cast<EuropaSemaphoreVk>(semaphore)->m_sema, VK_NULL_HANDLE, &imageIndex);
 
     if (r)
     {
@@ -1368,7 +1368,7 @@ EuropaGraphicsPipelineVk::~EuropaGraphicsPipelineVk()
     vkDestroyPipeline(m_device->m_device, m_pipeline, nullptr);
 }
 
-std::vector<EuropaCmdlist*> EuropaCommandPoolVk::AllocateCommandBuffers(uint8 level, uint32 count)
+std::vector<EuropaCmdlist::Ref> EuropaCommandPoolVk::AllocateCommandBuffers(uint8 level, uint32 count)
 {
     std::vector<VkCommandBuffer> commandBuffers;
     commandBuffers.resize(count);
@@ -1383,12 +1383,12 @@ std::vector<EuropaCmdlist*> EuropaCommandPoolVk::AllocateCommandBuffers(uint8 le
         throw std::runtime_error("failed to allocate command buffers!");
     }
 
-    std::vector<EuropaCmdlist*> cmdlists;
+    std::vector<EuropaCmdlist::Ref> cmdlists;
     for (VkCommandBuffer buffer : commandBuffers)
     {
-        EuropaCmdlistVk* cmdlist = new EuropaCmdlistVk();
+        EuropaCmdlistVk::Ref cmdlist = std::make_shared<EuropaCmdlistVk>();
         cmdlist->m_device = m_device;
-        cmdlist->m_pool = this;
+        cmdlist->m_pool = shared_from_this();
         cmdlist->m_cmdlist = buffer;
 
         cmdlists.push_back(cmdlist);
@@ -1421,12 +1421,12 @@ void EuropaCmdlistVk::End()
     }
 }
 
-void EuropaCmdlistVk::BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor)
+void EuropaCmdlistVk::BeginRenderpass(EuropaRenderPass::Ref renderpass, EuropaFramebuffer::Ref framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor)
 {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = static_cast<EuropaRenderPassVk*>(renderpass)->m_renderPass;
-    renderPassInfo.framebuffer = static_cast<EuropaFramebufferVk*>(framebuffer)->m_framebuffer;
+    renderPassInfo.renderPass = std::static_pointer_cast<EuropaRenderPassVk>(renderpass)->m_renderPass;
+    renderPassInfo.framebuffer = std::static_pointer_cast<EuropaFramebufferVk>(framebuffer)->m_framebuffer;
     renderPassInfo.renderArea.offset = { int32(offset.x), int32(offset.y) };
     renderPassInfo.renderArea.extent = { uint32(extent.x), uint32(extent.y) };
 
@@ -1459,9 +1459,9 @@ void EuropaCmdlistVk::EndRenderpass()
     vkCmdEndRenderPass(m_cmdlist);
 }
 
-void EuropaCmdlistVk::BindPipeline(EuropaGraphicsPipeline* pipeline)
+void EuropaCmdlistVk::BindPipeline(EuropaGraphicsPipeline::Ref pipeline)
 {
-    vkCmdBindPipeline(m_cmdlist, VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<EuropaGraphicsPipelineVk*>(pipeline)->m_pipeline);
+    vkCmdBindPipeline(m_cmdlist, VK_PIPELINE_BIND_POINT_GRAPHICS, std::static_pointer_cast<EuropaGraphicsPipelineVk>(pipeline)->m_pipeline);
 }
 
 void EuropaCmdlistVk::DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance)
@@ -1474,26 +1474,26 @@ void EuropaCmdlistVk::DrawIndexed(uint32 indexCount, uint32 instanceCount, uint3
     vkCmdDrawIndexed(m_cmdlist, indexCount, instanceCount, firstIndex, firstVertex, firstInstance);
 }
 
-void EuropaCmdlistVk::BindVertexBuffer(EuropaBuffer* _buffer, uint32 offset, uint32 binding)
+void EuropaCmdlistVk::BindVertexBuffer(EuropaBuffer::Ref _buffer, uint32 offset, uint32 binding)
 {
-    EuropaBufferVk* buffer = static_cast<EuropaBufferVk*>(_buffer);
+    EuropaBufferVk::Ref buffer = std::static_pointer_cast<EuropaBufferVk>(_buffer);
 
     VkBuffer vertexBuffers[] = { buffer->m_buffer };
     VkDeviceSize offsets[] = { offset };
     vkCmdBindVertexBuffers(m_cmdlist, binding, 1, vertexBuffers, offsets);
 }
 
-void EuropaCmdlistVk::BindIndexBuffer(EuropaBuffer* _buffer, uint32 offset, EuropaImageFormat indexFormat)
+void EuropaCmdlistVk::BindIndexBuffer(EuropaBuffer::Ref _buffer, uint32 offset, EuropaImageFormat indexFormat)
 {
-    EuropaBufferVk* buffer = static_cast<EuropaBufferVk*>(_buffer);
+    EuropaBufferVk::Ref buffer = std::static_pointer_cast<EuropaBufferVk>(_buffer);
 
     vkCmdBindIndexBuffer(m_cmdlist, buffer->m_buffer, offset, (indexFormat == EuropaImageFormat::R16UI ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32));
 }
 
-void EuropaCmdlistVk::CopyBuffer(EuropaBuffer* _dst, EuropaBuffer* _src, uint32 size, uint32 srcOffset, uint32 dstOffset)
+void EuropaCmdlistVk::CopyBuffer(EuropaBuffer::Ref _dst, EuropaBuffer::Ref _src, uint32 size, uint32 srcOffset, uint32 dstOffset)
 {
-    EuropaBufferVk* dst = static_cast<EuropaBufferVk*>(_dst);
-    EuropaBufferVk* src = static_cast<EuropaBufferVk*>(_src);
+    EuropaBufferVk::Ref dst = std::static_pointer_cast<EuropaBufferVk>(_dst);
+    EuropaBufferVk::Ref src = std::static_pointer_cast<EuropaBufferVk>(_src);
 
     VkBufferCopy copy{};
     copy.size = size;
@@ -1503,9 +1503,9 @@ void EuropaCmdlistVk::CopyBuffer(EuropaBuffer* _dst, EuropaBuffer* _src, uint32 
     vkCmdCopyBuffer(m_cmdlist, src->m_buffer, dst->m_buffer, 1, &copy);
 }
 
-void EuropaCmdlistVk::BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout* layout, EuropaDescriptorSet* descSet, uint32 set)
+void EuropaCmdlistVk::BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set)
 {
-    vkCmdBindDescriptorSets(m_cmdlist, VkPipelineBindPoint(bindPoint), static_cast<EuropaPipelineLayoutVk*>(layout)->m_layout, set, 1, &static_cast<EuropaDescriptorSetVk*>(descSet)->m_set, 0, 0);
+    vkCmdBindDescriptorSets(m_cmdlist, VkPipelineBindPoint(bindPoint), std::static_pointer_cast<EuropaPipelineLayoutVk>(layout)->m_layout, set, 1, &std::static_pointer_cast<EuropaDescriptorSetVk>(descSet)->m_set, 0, 0);
 }
 
 EuropaSemaphoreVk::~EuropaSemaphoreVk()
@@ -1514,9 +1514,9 @@ EuropaSemaphoreVk::~EuropaSemaphoreVk()
 }
 
 void EuropaQueueVk::Submit(
-    uint32 waitSemaphoreCount, EuropaSemaphore** _waitSemaphores, EuropaPipelineStage* waitStages,
-    uint32 cmdlistCount, EuropaCmdlist** cmdlists,
-    uint32 signalSemaphoreCount, EuropaSemaphore** _signalSemaphores, EuropaFence* fence)
+    uint32 waitSemaphoreCount, EuropaSemaphore::Ref* _waitSemaphores, EuropaPipelineStage* waitStages,
+    uint32 cmdlistCount, EuropaCmdlist::Ref* cmdlists,
+    uint32 signalSemaphoreCount, EuropaSemaphore::Ref* _signalSemaphores, EuropaFence::Ref fence)
 {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1525,7 +1525,7 @@ void EuropaQueueVk::Submit(
 
     for (uint32 i = 0; i < waitSemaphoreCount; i++)
     {
-        waitSemaphores.push_back(static_cast<EuropaSemaphoreVk*>(_waitSemaphores[i])->m_sema);
+        waitSemaphores.push_back(std::static_pointer_cast<EuropaSemaphoreVk>(_waitSemaphores[i])->m_sema);
     }
 
     submitInfo.waitSemaphoreCount = waitSemaphoreCount;
@@ -1536,7 +1536,7 @@ void EuropaQueueVk::Submit(
 
     for (uint32 i = 0; i < cmdlistCount; i++)
     {
-        cmdbuffers.push_back(static_cast<EuropaCmdlistVk*>(cmdlists[i])->m_cmdlist);
+        cmdbuffers.push_back(std::static_pointer_cast<EuropaCmdlistVk>(cmdlists[i])->m_cmdlist);
     }
 
     submitInfo.commandBufferCount = cmdlistCount;
@@ -1546,25 +1546,25 @@ void EuropaQueueVk::Submit(
 
     for (uint32 i = 0; i < signalSemaphoreCount; i++)
     {
-        signalSemaphores.push_back(static_cast<EuropaSemaphoreVk*>(_signalSemaphores[i])->m_sema);
+        signalSemaphores.push_back(std::static_pointer_cast<EuropaSemaphoreVk>(_signalSemaphores[i])->m_sema);
     }
 
     submitInfo.signalSemaphoreCount = signalSemaphoreCount;
     submitInfo.pSignalSemaphores = signalSemaphores.data();
 
-    if (vkQueueSubmit(m_queue, 1, &submitInfo, fence ? static_cast<EuropaFenceVk*>(fence)->m_fence : VK_NULL_HANDLE) != VK_SUCCESS) {
+    if (vkQueueSubmit(m_queue, 1, &submitInfo, fence ? std::static_pointer_cast<EuropaFenceVk>(fence)->m_fence : VK_NULL_HANDLE) != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 }
 
-void EuropaQueueVk::Submit(EuropaCmdlist* cmdlist)
+void EuropaQueueVk::Submit(EuropaCmdlist::Ref cmdlist)
 {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 0;
     submitInfo.pWaitSemaphores = nullptr;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &static_cast<EuropaCmdlistVk*>(cmdlist)->m_cmdlist;
+    submitInfo.pCommandBuffers = &std::static_pointer_cast<EuropaCmdlistVk>(cmdlist)->m_cmdlist;
     submitInfo.signalSemaphoreCount = 0;
     submitInfo.pSignalSemaphores = nullptr;
 
@@ -1573,7 +1573,7 @@ void EuropaQueueVk::Submit(EuropaCmdlist* cmdlist)
     }
 }
 
-void EuropaQueueVk::Present(uint32 waitSemaphoreCount, EuropaSemaphore** _waitSemaphores, uint32 swapchainCount, EuropaSwapChain** _swapchains, uint32 imageIndex)
+void EuropaQueueVk::Present(uint32 waitSemaphoreCount, EuropaSemaphore::Ref* _waitSemaphores, uint32 swapchainCount, EuropaSwapChain::Ref* _swapchains, uint32 imageIndex)
 {
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1582,7 +1582,7 @@ void EuropaQueueVk::Present(uint32 waitSemaphoreCount, EuropaSemaphore** _waitSe
 
     for (uint32 i = 0; i < waitSemaphoreCount; i++)
     {
-        waitSemaphores.push_back(static_cast<EuropaSemaphoreVk*>(_waitSemaphores[i])->m_sema);
+        waitSemaphores.push_back(std::static_pointer_cast<EuropaSemaphoreVk>(_waitSemaphores[i])->m_sema);
     }
 
     presentInfo.waitSemaphoreCount = waitSemaphoreCount;
@@ -1592,7 +1592,7 @@ void EuropaQueueVk::Present(uint32 waitSemaphoreCount, EuropaSemaphore** _waitSe
 
     for (uint32 i = 0; i < waitSemaphoreCount; i++)
     {
-        swapchains.push_back(static_cast<EuropaSwapChainVk*>(_swapchains[i])->m_swapchain);
+        swapchains.push_back(std::static_pointer_cast<EuropaSwapChainVk>(_swapchains[i])->m_swapchain);
     }
 
     presentInfo.swapchainCount = swapchainCount;
@@ -1672,16 +1672,17 @@ EuropaDescriptorSetLayoutVk::~EuropaDescriptorSetLayoutVk()
     Clear();
 }
 
-EuropaDescriptorSet* EuropaDescriptorPoolVk::AllocateDescriptorSet(EuropaDescriptorSetLayout* layout)
+EuropaDescriptorSet::Ref EuropaDescriptorPoolVk::AllocateDescriptorSet(EuropaDescriptorSetLayout::Ref layout)
 {
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_pool;
     allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &static_cast<EuropaDescriptorSetLayoutVk*>(layout)->m_setLayout;
+    allocInfo.pSetLayouts = &std::static_pointer_cast<EuropaDescriptorSetLayoutVk>(layout)->m_setLayout;
 
-    EuropaDescriptorSetVk* set = new EuropaDescriptorSetVk();
+    EuropaDescriptorSetVk::Ref set = std::make_shared<EuropaDescriptorSetVk>();
     set->m_device = m_device;
+    set->m_layout = layout;
 
     if (vkAllocateDescriptorSets(m_device->m_device, &allocInfo, &set->m_set) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor set!");
@@ -1695,10 +1696,10 @@ EuropaDescriptorPoolVk::~EuropaDescriptorPoolVk()
     vkDestroyDescriptorPool(m_device->m_device, m_pool, nullptr);
 }
 
-void EuropaDescriptorSetVk::SetUniformBuffer(EuropaBuffer* buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement)
+void EuropaDescriptorSetVk::SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement)
 {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = static_cast<EuropaBufferVk*>(buffer)->m_buffer;
+    bufferInfo.buffer = std::static_pointer_cast<EuropaBufferVk>(buffer)->m_buffer;
     bufferInfo.offset = offset;
     bufferInfo.range = size;
 

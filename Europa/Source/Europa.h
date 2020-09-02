@@ -323,12 +323,16 @@ GANYMEDE_ENUM(EuropaMemoryUsage,
 class EuropaSemaphore
 {
 public:
+	DECL_REF(EuropaSemaphore)
+
 	virtual ~EuropaSemaphore() {};
 };
 
 class EuropaFence
 {
 public:
+	DECL_REF(EuropaFence)
+
 	virtual ~EuropaFence() {};
 };
 
@@ -358,6 +362,8 @@ struct EuropaSwapChainCapabilities
 class EuropaSurface
 {
 public:
+	DECL_REF(EuropaSurface)
+
 	virtual ~EuropaSurface() {};
 };
 
@@ -374,7 +380,7 @@ class EuropaCmdlist;
 
 struct EuropaSwapChainCreateInfo
 {
-	EuropaSurface* surface;
+	EuropaSurface::Ref surface;
 	uint32 imageCount;
 	EuropaImageFormat format;
 	EuropaColorSpace colorSpace;
@@ -387,10 +393,12 @@ struct EuropaSwapChainCreateInfo
 class EuropaSwapChain
 {
 public:
+	DECL_REF(EuropaSwapChain)
+
 	static const int32 NextImageOutOfDate = -1000001004;
 	static const int32 NextImageSubOptimal = 1000001003;
 
-	virtual int32 AcquireNextImage(EuropaSemaphore* semaphore) = 0;
+	virtual int32 AcquireNextImage(EuropaSemaphore::Ref semaphore) = 0;
 
 	virtual ~EuropaSwapChain() {};
 };
@@ -398,14 +406,16 @@ public:
 class EuropaQueue
 {
 public:
+	DECL_REF(EuropaQueue)
+
 	EuropaQueueFamilyProperties m_property;
 
 	virtual void Submit(
-		uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, EuropaPipelineStage* waitStages,
-		uint32 cmdlistCount, EuropaCmdlist** cmdlists,
-		uint32 signalSemaphoreCount, EuropaSemaphore** signalSemaphores, EuropaFence* fence = nullptr) = 0;
-	virtual void Submit(EuropaCmdlist* cmdlist) = 0;
-	virtual void Present(uint32 waitSemaphoreCount, EuropaSemaphore** waitSemaphores, uint32 swapchainCount, EuropaSwapChain** swapchains, uint32 imageIndex) = 0;
+		uint32 waitSemaphoreCount, EuropaSemaphore::Ref* waitSemaphores, EuropaPipelineStage* waitStages,
+		uint32 cmdlistCount, std::shared_ptr<EuropaCmdlist>* cmdlists,
+		uint32 signalSemaphoreCount, EuropaSemaphore::Ref* signalSemaphores, EuropaFence::Ref fence = nullptr) = 0;
+	virtual void Submit(std::shared_ptr<EuropaCmdlist> cmdlist) = 0;
+	virtual void Present(uint32 waitSemaphoreCount, EuropaSemaphore::Ref* waitSemaphores, uint32 swapchainCount, EuropaSwapChain::Ref* swapchains, uint32 imageIndex) = 0;
 	virtual void WaitIdle() = 0;
 
 	virtual ~EuropaQueue() {};
@@ -429,7 +439,7 @@ struct EuropaImageInfo
 class EuropaImage
 {
 public:
-	typedef std::shared_ptr<EuropaImage> Ref;
+	DECL_REF(EuropaImage)
 
 	virtual ~EuropaImage() {};
 };
@@ -448,7 +458,7 @@ struct EuropaImageViewCreateInfo
 class EuropaImageView
 {
 public:
-	typedef std::shared_ptr<EuropaImageView> Ref;
+	DECL_REF(EuropaImageView)
 
 	virtual ~EuropaImageView() {};
 };
@@ -456,13 +466,15 @@ public:
 class EuropaShaderModule
 {
 public:
+	DECL_REF(EuropaShaderModule)
+
 	virtual ~EuropaShaderModule() {};
 };
 
 struct EuropaShaderStageInfo
 {
 	EuropaShaderStage stage;
-	EuropaShaderModule* module;
+	EuropaShaderModule::Ref module;
 	const char* entryPoint;
 };
 
@@ -536,6 +548,8 @@ struct EuropaDepthStencilStateInfo
 class EuropaDescriptorSetLayout
 {
 public:
+	DECL_REF(EuropaDescriptorSetLayout)
+
 	virtual void Build() = 0;
 	virtual void Clear() = 0;
 	virtual void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
@@ -547,12 +561,14 @@ struct EuropaPipelineLayoutInfo
 {
 	uint32 setLayoutCount;
 	uint32 pushConstantRangeCount;
-	EuropaDescriptorSetLayout** descSetLayouts;
+	EuropaDescriptorSetLayout::Ref* descSetLayouts;
 };
 
 class EuropaPipelineLayout
 {
 public:
+	DECL_REF(EuropaPipelineLayout)
+
 	virtual ~EuropaPipelineLayout() {};
 };
 
@@ -576,6 +592,8 @@ struct EuropaAttachmentReference
 class EuropaRenderPass
 {
 public:
+	DECL_REF(EuropaRenderPass)
+
 	static const uint32 SubpassExternal = 0xFFFFFFFF;
 
 	virtual uint32 AddAttachment(EuropaAttachmentInfo& attachment) = 0;
@@ -597,6 +615,8 @@ struct EuropaBufferInfo
 class EuropaBuffer
 {
 public:
+	DECL_REF(EuropaBuffer)
+
 	virtual void* MapT() = 0;
 	virtual void Unmap() = 0;
 	virtual EuropaBufferInfo GetInfo() = 0;
@@ -619,20 +639,22 @@ struct EuropaGraphicsPipelineCreateInfo
 	EuropaDepthStencilStateInfo depthStencil;
 	// FIXME: Support blending
 	// FIXME: Support dynamic state
-	EuropaPipelineLayout* layout = nullptr;
-	EuropaRenderPass* renderpass = nullptr;
+	EuropaPipelineLayout::Ref layout = nullptr;
+	EuropaRenderPass::Ref renderpass = nullptr;
 	uint32 targetSubpass = 0;
 };
 
 class EuropaGraphicsPipeline
 {
 public:
+	DECL_REF(EuropaGraphicsPipeline)
+
 	virtual ~EuropaGraphicsPipeline() {};
 };
 
 struct EuropaFramebufferCreateInfo
 {
-	EuropaRenderPass* renderpass;
+	EuropaRenderPass::Ref renderpass;
 	std::vector<EuropaImageView::Ref> attachments;
 	uint32 width;
 	uint32 height;
@@ -642,13 +664,17 @@ struct EuropaFramebufferCreateInfo
 class EuropaFramebuffer
 {
 public:
+	DECL_REF(EuropaFramebuffer)
+
 	virtual ~EuropaFramebuffer() {};
 };
 
 class EuropaDescriptorSet
 {
 public:
-	virtual void SetUniformBuffer(EuropaBuffer* buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
+	DECL_REF(EuropaDescriptorSet)
+
+	virtual void SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
 
 	virtual ~EuropaDescriptorSet() {};
 };
@@ -661,17 +687,19 @@ typedef union EuropaClearValue {
 class EuropaCmdlist
 {
 public:
+	DECL_REF(EuropaCmdlist)
+
 	virtual void Begin() = 0;
 	virtual void End() = 0;
-	virtual void BeginRenderpass(EuropaRenderPass* renderpass, EuropaFramebuffer* framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor) = 0;
+	virtual void BeginRenderpass(EuropaRenderPass::Ref renderpass, EuropaFramebuffer::Ref framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor) = 0;
 	virtual void EndRenderpass() = 0;
-	virtual void BindPipeline(EuropaGraphicsPipeline* pipeline) = 0;
+	virtual void BindPipeline(EuropaGraphicsPipeline::Ref pipeline) = 0;
 	virtual void DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance) = 0;
 	virtual void DrawIndexed(uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 firstVertex, uint32 firstInstance) = 0;
-	virtual void BindVertexBuffer(EuropaBuffer* buffer, uint32 offset, uint32 binding) = 0;
-	virtual void BindIndexBuffer(EuropaBuffer* buffer, uint32 offset, EuropaImageFormat indexFormat) = 0;
-	virtual void CopyBuffer(EuropaBuffer* dst, EuropaBuffer* src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0) = 0;
-	virtual void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout* layout, EuropaDescriptorSet* descSet, uint32 set = 0) = 0;
+	virtual void BindVertexBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 binding) = 0;
+	virtual void BindIndexBuffer(EuropaBuffer::Ref buffer, uint32 offset, EuropaImageFormat indexFormat) = 0;
+	virtual void CopyBuffer(EuropaBuffer::Ref dst, EuropaBuffer::Ref src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0) = 0;
+	virtual void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0) = 0;
 
 	virtual ~EuropaCmdlist() {};
 };
@@ -694,7 +722,9 @@ struct EuropaDescriptorPoolSizes
 class EuropaDescriptorPool
 {
 public:
-	virtual EuropaDescriptorSet* AllocateDescriptorSet(EuropaDescriptorSetLayout* layout) = 0;
+	DECL_REF(EuropaDescriptorPool)
+
+	virtual EuropaDescriptorSet::Ref AllocateDescriptorSet(EuropaDescriptorSetLayout::Ref layout) = 0;
 
 	virtual ~EuropaDescriptorPool() {};
 };
@@ -702,52 +732,56 @@ public:
 class EuropaCommandPool
 {
 public:
-	virtual std::vector<EuropaCmdlist*> AllocateCommandBuffers(uint8 level, uint32 count) = 0;
+	DECL_REF(EuropaCommandPool)
+
+	virtual std::vector<EuropaCmdlist::Ref> AllocateCommandBuffers(uint8 level, uint32 count) = 0;
 	virtual ~EuropaCommandPool() {};
 };
 
 class EuropaDevice
 {
 public:
-	typedef std::shared_ptr<EuropaDevice> Ref;
+	DECL_REF(EuropaDevice)
 
 	virtual EuropaDeviceType GetType() = 0;
 	virtual std::string GetName() = 0;
-	virtual std::vector<EuropaQueueFamilyProperties> GetQueueFamilies(EuropaSurface* surface) = 0;
+	virtual std::vector<EuropaQueueFamilyProperties> GetQueueFamilies(EuropaSurface::Ref surface) = 0;
 	virtual void CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFamilyProperties* queues, uint32* queueCount) = 0;
-	virtual EuropaQueue* GetQueue(EuropaQueueFamilyProperties& queue) = 0;
-	virtual EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface* surface) = 0;
-	virtual EuropaSwapChain* CreateSwapChain(EuropaSwapChainCreateInfo& args) = 0;
-	virtual std::vector<EuropaImage::Ref> GetSwapChainImages(EuropaSwapChain* swapChain) = 0;
+	virtual EuropaQueue::Ref GetQueue(EuropaQueueFamilyProperties& queue) = 0;
+	virtual EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface::Ref surface) = 0;
+	virtual EuropaSwapChain::Ref CreateSwapChain(EuropaSwapChainCreateInfo& args) = 0;
+	virtual std::vector<EuropaImage::Ref> GetSwapChainImages(EuropaSwapChain::Ref swapChain) = 0;
 	virtual EuropaImage::Ref CreateImage(EuropaImageInfo& args) = 0;
 	virtual EuropaImageView::Ref CreateImageView(EuropaImageViewCreateInfo& args) = 0;
-	virtual EuropaFramebuffer* CreateFramebuffer(EuropaFramebufferCreateInfo& args) = 0;
-	virtual EuropaShaderModule* CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;
-	virtual EuropaDescriptorSetLayout* CreateDescriptorSetLayout() = 0;
-	virtual EuropaPipelineLayout* CreatePipelineLayout(EuropaPipelineLayoutInfo& args) = 0;
-	virtual EuropaDescriptorPool* CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets) = 0;
-	virtual EuropaRenderPass* CreateRenderPassBuilder() = 0;
-	virtual EuropaGraphicsPipeline* CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args) = 0;
-	virtual EuropaCommandPool* CreateCommandPool(EuropaQueue* queue) = 0;
-	virtual EuropaSemaphore* CreateSema() = 0;
-	virtual EuropaFence* CreateFence(bool createSignaled = false) = 0;
+	virtual EuropaFramebuffer::Ref CreateFramebuffer(EuropaFramebufferCreateInfo& args) = 0;
+	virtual EuropaShaderModule::Ref CreateShaderModule(const uint32* spvBinary, uint32 size) = 0;
+	virtual EuropaDescriptorSetLayout::Ref CreateDescriptorSetLayout() = 0;
+	virtual EuropaPipelineLayout::Ref CreatePipelineLayout(EuropaPipelineLayoutInfo& args) = 0;
+	virtual EuropaDescriptorPool::Ref CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets) = 0;
+	virtual EuropaRenderPass::Ref CreateRenderPassBuilder() = 0;
+	virtual EuropaGraphicsPipeline::Ref CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args) = 0;
+	virtual EuropaCommandPool::Ref CreateCommandPool(EuropaQueue::Ref queue) = 0;
+	virtual EuropaSemaphore::Ref CreateSema() = 0;
+	virtual EuropaFence::Ref CreateFence(bool createSignaled = false) = 0;
 	virtual void WaitIdle() = 0;
-	virtual void WaitForFences(uint32 numFences, EuropaFence** fences, bool waitAll = true, uint64 timeout = UINT64_MAX) = 0;
-	virtual void ResetFences(uint32 numFences, EuropaFence** fences) = 0;
-	virtual EuropaBuffer* CreateBuffer(EuropaBufferInfo& args) = 0;
+	virtual void WaitForFences(uint32 numFences, EuropaFence::Ref* fences, bool waitAll = true, uint64 timeout = UINT64_MAX) = 0;
+	virtual void ResetFences(uint32 numFences, EuropaFence::Ref* fences) = 0;
+	virtual EuropaBuffer::Ref CreateBuffer(EuropaBufferInfo& args) = 0;
 
 	virtual uint32 GetMinUniformBufferOffsetAlignment() = 0;
 
 	virtual ~EuropaDevice() {};
 };
 
+class IoSurface;
+
 class Europa
 {
 public:
-	typedef std::shared_ptr<Europa> Ref;
+	DECL_REF(Europa)
 
 	virtual ~Europa() {};
 
 	virtual std::vector<EuropaDevice::Ref> GetDevices() = 0;
-	virtual EuropaSurface* CreateSurface(IoSurface* ioSurface) = 0;
+	virtual EuropaSurface::Ref CreateSurface(REF(IoSurface) ioSurface) = 0;
 };

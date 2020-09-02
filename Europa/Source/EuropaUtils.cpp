@@ -1,6 +1,6 @@
 #include "EuropaUtils.h"
 
-void EuropaTransferUtil::UploadToBufferEx(EuropaBuffer* target, uint8* src, uint32 size)
+void EuropaTransferUtil::UploadToBufferEx(EuropaBuffer::Ref target, uint8* src, uint32 size)
 {
     uint32 offset = 0;
 
@@ -27,7 +27,7 @@ void EuropaTransferUtil::NewFrame()
 {
 }
 
-EuropaTransferUtil::EuropaTransferUtil(EuropaDevice::Ref device, EuropaQueue* queue, EuropaCmdlist* cmdlist, uint32 stagingBufferSize)
+EuropaTransferUtil::EuropaTransferUtil(EuropaDevice::Ref device, EuropaQueue::Ref queue, EuropaCmdlist::Ref cmdlist, uint32 stagingBufferSize)
     : m_device(device)
     , m_queue(queue)
     , m_cmdlist(cmdlist)
@@ -44,7 +44,6 @@ EuropaTransferUtil::EuropaTransferUtil(EuropaDevice::Ref device, EuropaQueue* qu
 
 EuropaTransferUtil::~EuropaTransferUtil()
 {
-    GanymedeDelete(m_bufferCpu2Gpu);
 }
 
 EuropaStreamingBuffer::Handle EuropaStreamingBuffer::AllocateTransient(uint32 size)
@@ -82,5 +81,5 @@ EuropaStreamingBuffer::EuropaStreamingBuffer(EuropaDevice::Ref device, uint32 fr
 
 EuropaStreamingBuffer::~EuropaStreamingBuffer()
 {
-    for (auto b : m_streamingBuffers) GanymedeDelete(b);
+    m_streamingBuffers.clear();
 }

@@ -7,7 +7,7 @@ struct AmaltheaFrame
 {
     EuropaImage::Ref image;
     EuropaImageView::Ref imageView;
-    EuropaCmdlist* cmdlist;
+    EuropaCmdlist::Ref cmdlist;
     uint32 frameIndex;
 };
 
@@ -28,31 +28,31 @@ public:
 
 protected:
     Europa& m_europa;
-    IoSurface& m_ioSurface;
+    REF(IoSurface) m_ioSurface;
 
     glm::uvec2 m_windowSize = glm::uvec2(0);
 
     std::vector<EuropaDevice::Ref> m_allDevices;
     EuropaDevice::Ref m_device = nullptr;
 
-    EuropaSurface* m_surface = nullptr;
+    EuropaSurface::Ref m_surface = nullptr;
 
     std::vector<EuropaQueueFamilyProperties> m_queueFamilies;
-    EuropaQueue* m_cmdQueue = nullptr;
+    EuropaQueue::Ref m_cmdQueue = nullptr;
 
-    EuropaSwapChain* m_swapChain = nullptr;
+    EuropaSwapChain::Ref m_swapChain = nullptr;
     EuropaSwapChainCapabilities m_swapChainCaps;
 
-    EuropaCommandPool* m_cmdpool;
+    EuropaCommandPool::Ref m_cmdpool;
 
-    std::vector<EuropaSemaphore*> m_imageAvailableSemaphore;
-    std::vector<EuropaSemaphore*> m_renderFinishedSemaphore;
-    std::vector<EuropaFence*> m_inFlightFences;
-    std::vector<EuropaFence*> m_imagesInFlight;
+    std::vector<EuropaSemaphore::Ref> m_imageAvailableSemaphore;
+    std::vector<EuropaSemaphore::Ref> m_renderFinishedSemaphore;
+    std::vector<EuropaFence::Ref> m_inFlightFences;
+    std::vector<EuropaFence::Ref> m_imagesInFlight;
 
     std::vector<AmaltheaFrame> m_frames;
 
-    EuropaCmdlist* m_copyCmdlist;
+    EuropaCmdlist::Ref m_copyCmdlist;
     EuropaTransferUtil* m_transferUtil;
     EuropaStreamingBuffer* m_streamingBuffer;
 
@@ -66,6 +66,6 @@ private:
 public:
     void Run();
 
-    Amalthea(Europa& europaInstance, IoSurface& ioSurface);
+    Amalthea(Europa& europaInstance, REF(IoSurface) ioSurface);
     virtual ~Amalthea();
 };
