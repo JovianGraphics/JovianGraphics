@@ -21,19 +21,20 @@ struct Vertex
 };
 
 struct ShaderConstants {
-	glm::mat4 modelMtx;
 	glm::mat4 viewMtx;
 	glm::mat4 projMtx;
 };
 
 std::vector<Vertex> vertices;
 std::vector<uint16> indices;
+std::vector<glm::mat4> projMatrices;
 
 class TestApp : public Amalthea
 {
 public:
 	EuropaBuffer::Ref m_vertexBuffer;
 	EuropaBuffer::Ref m_indexBuffer;
+	EuropaBuffer::Ref m_instanceMtxBuffer;
 
 	EuropaImage::Ref m_depthImage;
 	EuropaImageView::Ref m_depthView;
@@ -64,6 +65,14 @@ public:
 		plyModel.mesh.BuildVertices<Vertex>(vertices, 3, vertexFormat);
 		plyModel.mesh.BuildIndices<uint16>(indices);
 
+		for (int32 i = -3; i <= 3; i++)
+		{
+			for (int32 j = -3; j <= 3; j++)
+			{
+				projMatrices.push_back(glm::translate(glm::vec3(float(i) * 0.3, 0.0, float(j) * 0.3)));
+			}
+		}
+
 		// Create & Upload geometry buffers
 		EuropaBufferInfo vertexBufferInfo;
 		vertexBufferInfo.exclusive = true;
@@ -82,6 +91,15 @@ public:
 		m_indexBuffer = m_device->CreateBuffer(indexBufferInfo);
 
 		m_transferUtil->UploadToBufferEx(m_indexBuffer, indices.data(), uint32(indices.size()));
+
+		EuropaBufferInfo instanceBufferInfo;
+		instanceBufferInfo.exclusive = true;
+		instanceBufferInfo.size = uint32(projMatrices.size() * sizeof(glm::mat4));
+		instanceBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageVertex | EuropaBufferUsageTransferDst);
+		instanceBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
+		m_instanceMtxBuffer = m_device->CreateBuffer(instanceBufferInfo);
+
+		m_transferUtil->UploadToBufferEx(m_instanceMtxBuffer, projMatrices.data(), uint32(projMatrices.size()));
 	}
 
 	void OnDeviceDestroy()
@@ -140,12 +158,16 @@ public:
 		m_mainRenderPass->CreateRenderpass();
 
 		// Create Pipeline
-		EuropaVertexInputBindingInfo binding;
-		binding.binding = 0;
-		binding.stride = sizeof(Vertex);
-		binding.perInstance = false;
+		EuropaVertexInputBindingInfo binding[2];
+		binding[0].binding = 0;
+		binding[0].stride = sizeof(Vertex);
+		binding[0].perInstance = false;
 
-		EuropaVertexAttributeBindingInfo attributes[3];
+		binding[1].binding = 1;
+		binding[1].stride = sizeof(glm::mat4);
+		binding[1].perInstance = true;
+
+		EuropaVertexAttributeBindingInfo attributes[7];
 		attributes[0].binding = 0;
 		attributes[0].location = 0;
 		attributes[0].offset = offsetof(Vertex, Vertex::pos);
@@ -160,6 +182,27 @@ public:
 		attributes[2].location = 2;
 		attributes[2].offset = offsetof(Vertex, Vertex::normal);
 		attributes[2].format = EuropaImageFormat::RGB32F;
+
+		// A matrix ...
+		attributes[3].binding = 1;
+		attributes[3].location = 3;
+		attributes[3].offset = 0;
+		attributes[3].format = EuropaImageFormat::RGBA32F;
+
+		attributes[4].binding = 1;
+		attributes[4].location = 4;
+		attributes[4].offset = sizeof(glm::vec4);
+		attributes[4].format = EuropaImageFormat::RGBA32F;
+
+		attributes[5].binding = 1;
+		attributes[5].location = 5;
+		attributes[5].offset = sizeof(glm::vec4) * 2;
+		attributes[5].format = EuropaImageFormat::RGBA32F;
+
+		attributes[6].binding = 1;
+		attributes[6].location = 6;
+		attributes[6].offset = sizeof(glm::vec4) * 3;
+		attributes[6].format = EuropaImageFormat::RGBA32F;
 
 		EuropaShaderModule::Ref shaderFragment = m_device->CreateShaderModule(shader_spv_unlit_frag, sizeof(shader_spv_unlit_frag));
 		EuropaShaderModule::Ref shaderVertex = m_device->CreateShaderModule(shader_spv_unlit_vert, sizeof(shader_spv_unlit_vert));
@@ -179,9 +222,9 @@ public:
 
 		pipelineDesc.shaderStageCount = 2;
 		pipelineDesc.stages = stages;
-		pipelineDesc.vertexInput.vertexBindingCount = 1;
-		pipelineDesc.vertexInput.vertexBindings = &binding;
-		pipelineDesc.vertexInput.attributeBindingCount = 3;
+		pipelineDesc.vertexInput.vertexBindingCount = 2;
+		pipelineDesc.vertexInput.vertexBindings = binding;
+		pipelineDesc.vertexInput.attributeBindingCount = 7;
 		pipelineDesc.vertexInput.attributeBindings = attributes;
 		pipelineDesc.viewport.position = glm::vec2(0.0);
 		pipelineDesc.viewport.size = m_windowSize;
@@ -238,9 +281,7 @@ public:
 		auto constantsHandle = m_streamingBuffer->AllocateTransient(m_constantsSize);
 		ShaderConstants* constants = constantsHandle.Map<ShaderConstants>();
 		
-		constants->modelMtx = glm::scale(glm::rotate(time, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(3.0, 3.0, 3.0));
-
-		constants->viewMtx = glm::lookAt(glm::vec3(0.0, sin(time * 0.3), -1.0), glm::vec3(0.0, 0.3, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		constants->viewMtx = glm::lookAt(glm::vec3(cos(time * 0.3) * 3.0, sin(time * 0.3) * 0.5 + 0.5, sin(time * 0.3) * 3.0), glm::vec3(0.0, 0.3, 0.0), glm::vec3(0.0, 1.0, 0.0));
 		constants->projMtx = glm::perspective(glm::radians(60.0f), float(m_windowSize.x) / (m_windowSize.y), 0.01f, 256.0f);
 
 		constants->projMtx[1].y = -constants->projMtx[1].y;
@@ -257,9 +298,10 @@ public:
 		ctx.cmdlist->BeginRenderpass(m_mainRenderPass, m_frameBuffers[ctx.frameIndex], glm::ivec2(0), glm::uvec2(m_windowSize), 2, clearValue);
 		ctx.cmdlist->BindPipeline(m_pipeline);
 		ctx.cmdlist->BindVertexBuffer(m_vertexBuffer, 0, 0);
+		ctx.cmdlist->BindVertexBuffer(m_instanceMtxBuffer, 0, 1);
 		ctx.cmdlist->BindIndexBuffer(m_indexBuffer, 0, EuropaImageFormat::R16UI);
 		ctx.cmdlist->BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint::Graphics, m_pipelineLayout, m_descSets[ctx.frameIndex], 0, constantsHandle.offset);
-		ctx.cmdlist->DrawIndexed(indices.size(), 1, 0, 0, 0);
+		ctx.cmdlist->DrawIndexed(indices.size(), 7 * 7, 0, 0, 0);
 		ctx.cmdlist->EndRenderpass();
 		ctx.cmdlist->End();
 	}
