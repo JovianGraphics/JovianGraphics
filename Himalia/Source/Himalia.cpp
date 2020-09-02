@@ -20,11 +20,11 @@ void HimaliaMesh::BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaV
                 *(reinterpret_cast<glm::vec3*>((uint8*)(v) + stride * i + offset)) = normal[i];
                 offset += sizeof(glm::vec3);
                 break;
-            case HimaliaVertexProperty::ColorRGBA:
+            case HimaliaVertexProperty::Color:
                 *(reinterpret_cast<glm::vec3*>((uint8*)(v) + stride * i + offset)) = glm::vec3(color[i]);
                 offset += sizeof(glm::vec3);
                 break;
-            case HimaliaVertexProperty::Color:
+            case HimaliaVertexProperty::ColorRGBA:
                 *(reinterpret_cast<glm::vec4*>((uint8*)(v) + stride * i + offset)) = color[i];
                 offset += sizeof(glm::vec4);
                 break;
@@ -34,6 +34,41 @@ void HimaliaMesh::BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaV
                 break;
             }
         }
+    }
+}
+
+void HimaliaMesh::BuildNormals()
+{
+    std::vector<float> weights;
+    weights.resize(position.size(), 0.0);
+
+    for (glm::vec3& n : normal) n = glm::vec3(0.0);
+
+    for (uint32 i = 0; i < indices.size(); i += 3)
+    {
+        uint32 i0 = indices[i    ];
+        uint32 i1 = indices[i + 1];
+        uint32 i2 = indices[i + 2];
+
+        glm::vec3 p0 = position[i0];
+        glm::vec3 p1 = position[i1];
+        glm::vec3 p2 = position[i2];
+
+        glm::vec3 crossProduct = glm::cross(p1 - p0, p2 - p0);
+        float w = glm::length(crossProduct);
+        
+        normal[i0] += crossProduct;
+        normal[i1] += crossProduct;
+        normal[i2] += crossProduct;
+
+        weights[i0] += w;
+        weights[i1] += w;
+        weights[i2] += w;
+    }
+
+    for (uint32 i = 0; i < normal.size(); i += 3)
+    {
+        normal[i] = glm::normalize(normal[i]);
     }
 }
 

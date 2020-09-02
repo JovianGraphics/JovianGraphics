@@ -22,7 +22,8 @@ struct Vertex
 
 struct ShaderConstants {
 	glm::mat4 modelMtx;
-	glm::mat4 projViewMtx;
+	glm::mat4 viewMtx;
+	glm::mat4 projMtx;
 };
 
 std::vector<Vertex> vertices;
@@ -53,6 +54,7 @@ public:
 		// Load Model
 		HimaliaPlyModel plyModel;
 		plyModel.LoadFile("bun_zipper_res2.ply");
+		plyModel.mesh.BuildNormals();
 
 		HimaliaVertexProperty vertexFormat[] = {
 			HimaliaVertexProperty::Position,
@@ -185,6 +187,7 @@ public:
 		pipelineDesc.viewport.size = m_windowSize;
 		pipelineDesc.viewport.minDepth = 0.0f;
 		pipelineDesc.viewport.maxDepth = 1.0f;
+		pipelineDesc.rasterizer.cullBackFace = true;
 		pipelineDesc.scissor.position = glm::vec2(0.0);
 		pipelineDesc.scissor.size = m_windowSize;
 		pipelineDesc.depthStencil.enableDepthTest = true;
@@ -237,12 +240,10 @@ public:
 		
 		constants->modelMtx = glm::scale(glm::rotate(time, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(3.0, 3.0, 3.0));
 
-		glm::mat4 viewMtx = glm::lookAt(glm::vec3(0.0, sin(time * 0.3), -1.0), glm::vec3(0.0, 0.3, 0.0), glm::vec3(0.0, 1.0, 0.0));
-		glm::mat4 projMtx = glm::perspective(glm::radians(60.0f), float(m_windowSize.x) / (m_windowSize.y), 0.01f, 256.0f);
+		constants->viewMtx = glm::lookAt(glm::vec3(0.0, sin(time * 0.3), -1.0), glm::vec3(0.0, 0.3, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		constants->projMtx = glm::perspective(glm::radians(60.0f), float(m_windowSize.x) / (m_windowSize.y), 0.01f, 256.0f);
 
-		projMtx[1].y = -projMtx[1].y;
-
-		constants->projViewMtx = projMtx * viewMtx;
+		constants->projMtx[1].y = -constants->projMtx[1].y;
 
 		constantsHandle.Unmap();
 

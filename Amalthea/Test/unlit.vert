@@ -3,7 +3,8 @@
 
 layout(binding = 0) uniform Constants {
     mat4 modelMtx;
-    mat4 projectionViewMtx;
+    mat4 viewMtx;
+    mat4 projMtx;
 };
 
 layout(location = 0) in vec3 inPosition;
@@ -12,10 +13,12 @@ layout(location = 2) in vec3 inNormal;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec3 normal;
+layout(location = 2) out vec4 pos;
 
 void main() {
-    gl_Position = projectionViewMtx * (modelMtx * vec4(inPosition, 1.0));
-
+    pos = viewMtx * (modelMtx * vec4(inPosition, 1.0));
     fragColor = inColor;
-    normal = normalize(mat3(modelMtx) * inNormal);
+    normal = normalize(mat3(viewMtx) * mat3(modelMtx) * inNormal);
+
+    gl_Position = projMtx * pos;
 }

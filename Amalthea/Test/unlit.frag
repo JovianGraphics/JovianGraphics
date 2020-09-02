@@ -3,15 +3,21 @@
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 normal;
+layout(location = 2) in vec4 pos;
 
 layout(location = 0) out vec4 outColor;
-
-const vec3 sunDir = normalize(vec3(0.0, 1.0, 0.0));
 
 void main() {
     vec3 color = fragColor;
 
-    // color *= max(0.0, dot(normal, sunDir)) * 0.9 + 0.1;
+    vec3 lightPos = vec3(0.0, 1.0, 0.0);
+
+    vec3 L = normalize(lightPos - pos.xyz);
+
+    vec3 N = normalize(normal);
+    vec3 V = normalize(-pos.xyz);
+    vec3 H = normalize(V + L);
+    color *= max(0.0, dot(N, L)) * 0.5 + pow(max(0.0, dot(H, N)), 15.0);
 
     outColor = vec4(color, 1.0);
 }

@@ -41,6 +41,8 @@ public:
             indexBuffer[i] = indexT(indices[i]);
         }
     }
+
+    void BuildNormals();
 };
 
 class HimaliaPlyModel
