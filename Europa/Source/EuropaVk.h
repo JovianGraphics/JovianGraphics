@@ -183,6 +183,7 @@ public:
 	VkDescriptorSet m_set;
 
 	void SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement);
+	void SetUniformBufferDynamic(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement);
 
 	EuropaDescriptorSetVk() : SHARE(EuropaDescriptorSetVk)() {}
 	~EuropaDescriptorSetVk() {};
@@ -236,6 +237,7 @@ public:
 	void BindIndexBuffer(EuropaBuffer::Ref buffer, uint32 offset, EuropaImageFormat indexFormat);
 	void CopyBuffer(EuropaBuffer::Ref dst, EuropaBuffer::Ref src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0);
 	void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0);
+	void BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0, uint32 offset = 0);
 
 	EuropaCmdlistVk() : SHARE(EuropaCmdlistVk)() {}
 	~EuropaCmdlistVk() {};
@@ -278,6 +280,7 @@ public:
 	void Build();
 	void Clear();
 	void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage);
+	void DynamicUniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage);
 
 	EuropaDescriptorSetLayoutVk() : SHARE(EuropaDescriptorSetLayoutVk)() {}
 	~EuropaDescriptorSetLayoutVk();

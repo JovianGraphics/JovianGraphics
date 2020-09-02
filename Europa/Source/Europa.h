@@ -553,6 +553,7 @@ public:
 	virtual void Build() = 0;
 	virtual void Clear() = 0;
 	virtual void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
+	virtual void DynamicUniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 
 	virtual ~EuropaDescriptorSetLayout() {};
 };
@@ -675,6 +676,7 @@ public:
 	DECL_REF(EuropaDescriptorSet)
 
 	virtual void SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
+	virtual void SetUniformBufferDynamic(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
 
 	virtual ~EuropaDescriptorSet() {};
 };
@@ -700,6 +702,7 @@ public:
 	virtual void BindIndexBuffer(EuropaBuffer::Ref buffer, uint32 offset, EuropaImageFormat indexFormat) = 0;
 	virtual void CopyBuffer(EuropaBuffer::Ref dst, EuropaBuffer::Ref src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0) = 0;
 	virtual void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0) = 0;
+	virtual void BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0, uint32 offset = 0) = 0;
 
 	virtual ~EuropaCmdlist() {};
 };

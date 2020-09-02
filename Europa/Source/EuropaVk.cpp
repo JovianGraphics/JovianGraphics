@@ -1508,6 +1508,11 @@ void EuropaCmdlistVk::BindDescriptorSets(EuropaPipelineBindPoint bindPoint, Euro
     vkCmdBindDescriptorSets(m_cmdlist, VkPipelineBindPoint(bindPoint), std::static_pointer_cast<EuropaPipelineLayoutVk>(layout)->m_layout, set, 1, &std::static_pointer_cast<EuropaDescriptorSetVk>(descSet)->m_set, 0, 0);
 }
 
+void EuropaCmdlistVk::BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set, uint32 offset)
+{
+    vkCmdBindDescriptorSets(m_cmdlist, VkPipelineBindPoint(bindPoint), std::static_pointer_cast<EuropaPipelineLayoutVk>(layout)->m_layout, set, 1, &std::static_pointer_cast<EuropaDescriptorSetVk>(descSet)->m_set, 1, &offset);
+}
+
 EuropaSemaphoreVk::~EuropaSemaphoreVk()
 {
     vkDestroySemaphore(m_device->m_device, m_sema, nullptr);
@@ -1667,6 +1672,18 @@ void EuropaDescriptorSetLayoutVk::UniformBuffer(uint32 binding, uint32 count, Eu
     m_bindings.push_back(layoutBinding);
 }
 
+void EuropaDescriptorSetLayoutVk::DynamicUniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    layoutBinding.binding = binding;
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    layoutBinding.descriptorCount = count;
+    layoutBinding.stageFlags = VkShaderStageFlagBits(stage);
+    layoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    m_bindings.push_back(layoutBinding);
+}
+
 EuropaDescriptorSetLayoutVk::~EuropaDescriptorSetLayoutVk()
 {
     Clear();
@@ -1710,6 +1727,29 @@ void EuropaDescriptorSetVk::SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 of
     descriptorWrite.dstArrayElement = 0;
 
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+
+    descriptorWrite.pBufferInfo = &bufferInfo;
+    descriptorWrite.pImageInfo = nullptr; // Optional
+    descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+    vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void EuropaDescriptorSetVk::SetUniformBufferDynamic(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement)
+{
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = std::static_pointer_cast<EuropaBufferVk>(buffer)->m_buffer;
+    bufferInfo.offset = offset;
+    bufferInfo.range = size;
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_set;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     descriptorWrite.descriptorCount = 1;
 
     descriptorWrite.pBufferInfo = &bufferInfo;

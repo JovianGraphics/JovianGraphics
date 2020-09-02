@@ -165,7 +165,7 @@ public:
 		EuropaShaderModule::Ref shaderVertex = m_device->CreateShaderModule(shader_spv_unlit_vert, sizeof(shader_spv_unlit_vert));
 
 		EuropaDescriptorSetLayout::Ref descLayout = m_device->CreateDescriptorSetLayout();
-		descLayout->UniformBuffer(0, 1, EuropaShaderStageAllGraphics);
+		descLayout->DynamicUniformBuffer(0, 1, EuropaShaderStageAllGraphics);
 		descLayout->Build();
 
 		m_pipelineLayout = m_device->CreatePipelineLayout(EuropaPipelineLayoutInfo{ 1, 0, &descLayout });
@@ -215,7 +215,7 @@ public:
 
 		// Constants & Descriptor Pools / Sets
 		EuropaDescriptorPoolSizes descPoolSizes;
-		descPoolSizes.Uniform = uint32(m_frames.size());
+		descPoolSizes.UniformDynamic = uint32(m_frames.size());
 
 		m_descPool = m_device->CreateDescriptorPool(descPoolSizes, uint32(m_frames.size()));
 
@@ -247,7 +247,7 @@ public:
 
 		constantsHandle.Unmap();
 
-		m_descSets[ctx.frameIndex]->SetUniformBuffer(constantsHandle.buffer, constantsHandle.offset, m_constantsSize, 0, 0);
+		m_descSets[ctx.frameIndex]->SetUniformBufferDynamic(constantsHandle.buffer, 0, constantsHandle.offset + m_constantsSize, 0, 0);
 
 		EuropaClearValue clearValue[2];
 		clearValue[0].color = glm::vec4(0.0, 0.0, 0.0, 1.0);
@@ -258,7 +258,7 @@ public:
 		ctx.cmdlist->BindPipeline(m_pipeline);
 		ctx.cmdlist->BindVertexBuffer(m_vertexBuffer, 0, 0);
 		ctx.cmdlist->BindIndexBuffer(m_indexBuffer, 0, EuropaImageFormat::R16UI);
-		ctx.cmdlist->BindDescriptorSets(EuropaPipelineBindPoint::Graphics, m_pipelineLayout, m_descSets[ctx.frameIndex]);
+		ctx.cmdlist->BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint::Graphics, m_pipelineLayout, m_descSets[ctx.frameIndex], 0, constantsHandle.offset);
 		ctx.cmdlist->DrawIndexed(indices.size(), 1, 0, 0, 0);
 		ctx.cmdlist->EndRenderpass();
 		ctx.cmdlist->End();
