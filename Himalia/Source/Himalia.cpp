@@ -217,8 +217,6 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
                     mesh.normal.push_back(v.normal);
                     mesh.color.push_back(v.color);
                     mesh.uv.push_back(v.uv);
-
-                    GanymedePrint v.position.x, v.position.y, v.position.z, "normal", v.normal.x, v.normal.y, v.normal.g, "uv", v.uv.s, v.uv.t, "color:", v.color.r, v.color.g, v.color.b, v.color.a;
                 }
             }
         }
