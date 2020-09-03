@@ -18,7 +18,7 @@ public:
     virtual void OnDeviceDestroy() = 0;
     virtual void OnSwapChainCreated() = 0;
     virtual void OnSwapChainDestroy() = 0;
-    virtual void RenderFrame(AmaltheaFrame& ctx, float time) = 0;
+    virtual void RenderFrame(AmaltheaFrame& ctx, float time, float deltaTime) = 0;
 };
 
 class Amalthea : public AmaltheaBehaviors

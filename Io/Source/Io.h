@@ -10,6 +10,13 @@
 #include <mutex>
 #include <condition_variable>
 
+GANYMEDE_ENUM(
+	IoKeyboardEvent,
+	(KeyDown)
+	(KeyUp)
+	(CharacterInput)
+)
+
 class IoSurface
 {
 public:
@@ -18,6 +25,9 @@ public:
 	virtual ~IoSurface() {};
 	virtual void Run(std::function<void()> loopFunc) = 0;
 	virtual void WaitForEvent() = 0;
+
+	virtual void SetKeyCallback(std::function<void(uint8_t, uint16, std::string, IoKeyboardEvent)> callback) = 0;
+	virtual bool IsKeyDown(uint8_t key) = 0;
 
 	virtual glm::uvec2 GetSize() = 0;
 };
@@ -36,6 +46,8 @@ private:
 	std::mutex m_eventLock;
 	std::condition_variable m_eventCV;
 
+	std::function<void(uint8_t, uint16, std::string, IoKeyboardEvent)> keyCallback;
+
 public:
 	DECL_REF(IoSurfaceWin32)
 		
@@ -49,6 +61,9 @@ public:
 	void WaitForEvent();
 	
 	glm::uvec2 GetSize();
+
+	void SetKeyCallback(std::function<void(uint8_t, uint16, std::string, IoKeyboardEvent)> callback);
+	bool IsKeyDown(uint8_t key);
 
 	LRESULT WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

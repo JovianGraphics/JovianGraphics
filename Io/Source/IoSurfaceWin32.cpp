@@ -48,6 +48,8 @@ IoSurfaceWin32::IoSurfaceWin32(HINSTANCE hInstance)
 
 	RegisterClass(&wc);
 
+    this->keyCallback = [](uint8, uint16, std::string, IoKeyboardEvent) {};
+
     m_hwnd = CreateWindowEx(
         0,                              // Optional window styles.
         CLASS_NAME,                     // Window class
@@ -96,6 +98,20 @@ void IoSurfaceWin32::WaitForEvent()
     m_eventCV.wait(lk);
 }
 
+void IoSurfaceWin32::SetKeyCallback(std::function<void(uint8_t, uint16, std::string, IoKeyboardEvent)> callback)
+{
+    this->keyCallback = callback;
+}
+
+bool IoSurfaceWin32::IsKeyDown(uint8_t key)
+{
+    if (+(GetKeyState(key) & 0x8000))
+    {
+        return true;
+    }
+    return false;
+}
+
 glm::uvec2 IoSurfaceWin32::GetSize()
 {
     return size;
@@ -110,6 +126,15 @@ LRESULT IoSurfaceWin32::WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_SIZE:
         this->size = glm::uvec2(LOWORD(lParam), HIWORD(lParam));
+        break;
+    case WM_KEYDOWN:
+        this->keyCallback(uint8(wParam), uint16(wParam), "", IoKeyboardEvent::KeyDown);
+        break;
+    case WM_KEYUP:
+        this->keyCallback(uint8(wParam), uint16(wParam), "", IoKeyboardEvent::KeyUp);
+        break;
+    case WM_CHAR:
+        this->keyCallback(uint8(wParam), uint16(wParam), "", IoKeyboardEvent::CharacterInput);
         break;
     }
 

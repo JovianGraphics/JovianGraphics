@@ -50,6 +50,9 @@ public:
 
 	uint32 m_constantsSize;
 
+	float m_orbitHeight = 0.0;
+	float m_orbitRadius = 3.0;
+
 	void OnDeviceCreated()
 	{
 		// Load Model
@@ -276,12 +279,22 @@ public:
 		m_descSets.clear();
 	}
 
-	void RenderFrame(AmaltheaFrame& ctx, float time)
+	void RenderFrame(AmaltheaFrame& ctx, float time, float deltaTime)
 	{
+		if (m_ioSurface->IsKeyDown('W'))
+			m_orbitHeight += deltaTime * 0.5;
+		if (m_ioSurface->IsKeyDown('S'))
+			m_orbitHeight -= deltaTime * 0.5;
+
+		if (m_ioSurface->IsKeyDown('D'))
+			m_orbitRadius += deltaTime * 0.3;
+		if (m_ioSurface->IsKeyDown('A'))
+			m_orbitRadius -= deltaTime * 0.3;
+
 		auto constantsHandle = m_streamingBuffer->AllocateTransient(m_constantsSize);
 		ShaderConstants* constants = constantsHandle.Map<ShaderConstants>();
 		
-		constants->viewMtx = glm::lookAt(glm::vec3(cos(time * 0.3) * 3.0, sin(time * 0.3) * 0.5 + 0.5, sin(time * 0.3) * 3.0), glm::vec3(0.0, 0.3, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		constants->viewMtx = glm::lookAt(glm::vec3(cos(time * 0.3) * m_orbitRadius, m_orbitHeight, sin(time * 0.3) * m_orbitRadius), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 		constants->projMtx = glm::perspective(glm::radians(60.0f), float(m_windowSize.x) / (m_windowSize.y), 0.01f, 256.0f);
 
 		constants->projMtx[1].y = -constants->projMtx[1].y;

@@ -195,6 +195,7 @@ void Amalthea::Run()
 	std::thread rendering([&]()
 	{
 		auto startTime = std::chrono::steady_clock::now();
+		auto lastTime = startTime;
 		while (running)
 		{
 			m_device->WaitForFences(1, &m_inFlightFences[currentFrame]);
@@ -216,14 +217,16 @@ void Amalthea::Run()
 			m_device->ResetFences(1, &m_inFlightFences[currentFrame]);
 
 			auto currentTime = std::chrono::steady_clock::now();
+			float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 			float runTime = std::chrono::duration<float>(currentTime - startTime).count();
+			lastTime = currentTime;
 
 			m_transferUtil->NewFrame();
 			m_streamingBuffer->NewFrame();
 			
 			AmaltheaFrame& ctx = m_frames[currentFrame];
 
-			this->RenderFrame(ctx, runTime);
+			this->RenderFrame(ctx, runTime, deltaTime);
 
 			EuropaPipelineStage waitStage = EuropaPipelineStageColorAttachmentOutput;
 			m_cmdQueue->Submit(1, &m_imageAvailableSemaphore[currentFrame], &waitStage, 1, &ctx.cmdlist, 1, &m_renderFinishedSemaphore[currentFrame], m_inFlightFences[currentFrame]);

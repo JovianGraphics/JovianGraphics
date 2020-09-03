@@ -14,7 +14,7 @@ void main() {
 
     vec3 L = normalize(lightPos - pos.xyz);
 
-    vec3 N = normalize(normal);
+    vec3 N = normal;
     vec3 V = normalize(-pos.xyz);
     vec3 H = normalize(V + L);
     color *= max(0.0, dot(N, L)) * 0.5 + pow(max(0.0, dot(H, N)), 15.0);
