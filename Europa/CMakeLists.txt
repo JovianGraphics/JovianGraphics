@@ -14,6 +14,9 @@ set(EuropaSource
 	${CMAKE_SOURCE_DIR}/External/imgui/imgui.cpp
 	${CMAKE_SOURCE_DIR}/External/imgui/imgui_draw.cpp
 	${CMAKE_SOURCE_DIR}/External/imgui/imgui_widgets.cpp
+
+	${CMAKE_SOURCE_DIR}/External/implot/implot.cpp
+	${CMAKE_SOURCE_DIR}/External/implot/implot_items.cpp
 )
 
 if(WIN32)

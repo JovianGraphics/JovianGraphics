@@ -111,6 +111,7 @@ EuropaImGui::EuropaImGui(Europa& europa, EuropaImageFormat imageFormat, EuropaDe
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImPlot::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -121,6 +122,37 @@ EuropaImGui::EuropaImGui(Europa& europa, EuropaImageFormat imageFormat, EuropaDe
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
+
+	{
+		ImPlotStyle& style = ImPlot::GetStyle();
+		style.AntiAliasedLines = true;
+		style.LineWeight = 2.0;
+	}
+
+	{
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.FrameRounding = 4.0;
+		style.FrameBorderSize = 2.0;
+		style.WindowRounding = 4.0;
+		style.WindowBorderSize = 1.0;
+		style.ScrollbarSize = 16.0;
+		
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.02, 0.02, 0.02, 1.0));
+		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.05, 0.05, 0.05, 1.0));
+		ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.1, 0.1, 0.1, 1.0));
+		ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.05, 0.05, 0.05, 1.0));
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.01, 0.01, 0.01, 1.0));
+		ImGui::PushStyleColor(ImGuiCol_ResizeGrip, 0);
+		ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, ImVec4(0.05, 0.05, 0.05, 1.0));
+		ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, 0);
+
+
+		ImFontConfig config;
+		config.OversampleH = 2;
+		config.OversampleV = 1;
+		config.GlyphExtraSpacing.x = 0.0f;
+		io.Fonts->AddFontFromFileTTF("Assets/NotoSans-Regular.ttf", 16.0, &config);
+	}
 
 #ifdef EUROPA_VULKAN
 	VkPipelineCache pipelineCache;
@@ -143,7 +175,7 @@ EuropaImGui::EuropaImGui(Europa& europa, EuropaImageFormat imageFormat, EuropaDe
 		info.DescriptorPool = std::static_pointer_cast<EuropaDescriptorPoolVk>(m_descPool)->m_pool;
 		info.MinImageCount = 3;
 		info.ImageCount = 3;
-		info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+		info.MSAASamples = VK_SAMPLE_COUNT_4_BIT;
 		info.Allocator = nullptr;
 		info.CheckVkResultFn = nullptr;
 
@@ -170,4 +202,6 @@ EuropaImGui::~EuropaImGui()
 #ifdef IO_WIN32
     ImGui_ImplWin32_Shutdown();
 #endif
+	ImPlot::DestroyContext();
+	ImGui::DestroyContext();
 }

@@ -3,6 +3,7 @@
 #include "Europa.h"
 #include <Io/Source/Io.h>
 #include <External/imgui/imgui.h>
+#include <External/implot/implot.h>
 
 class EuropaImGui
 {

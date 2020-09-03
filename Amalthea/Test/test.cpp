@@ -53,11 +53,16 @@ public:
 	float m_orbitHeight = 0.0;
 	float m_orbitRadius = 3.0;
 
+	GanymedeScrollingBuffer m_frameTimeLog = GanymedeScrollingBuffer(1000, 0);
+	GanymedeScrollingBuffer m_frameRateLog = GanymedeScrollingBuffer(1000, 0);
+	uint32 m_frameCount = 0;
+	float m_fps = 0.0;
+
 	void OnDeviceCreated()
 	{
 		// Load Model
 		HimaliaPlyModel plyModel;
-		plyModel.LoadFile("bun_zipper_res2.ply");
+		plyModel.LoadFile("Assets/bun_zipper_res2.ply");
 		plyModel.mesh.BuildNormals();
 
 		HimaliaVertexProperty vertexFormat[] = {
@@ -316,14 +321,30 @@ public:
 		ctx.cmdlist->DrawIndexed(indices.size(), 7 * 7, 0, 0, 0);
 		ctx.cmdlist->EndRenderpass();
 
-		ImGui::Begin("Debug Info");
-		ImGui::LabelText("CPU", "%f ms", deltaTime * 1000.0);
-		ImGui::LabelText("FPS", "%d", int(1.0 / deltaTime));
-		if (ImGui::Button("Up"))
-			m_orbitHeight += 1.0;
-		if (ImGui::Button("Down"))
-			m_orbitHeight -= 1.0;
-		ImGui::End();
+		m_fps = m_fps * 0.7 + 0.3 * glm::clamp(1.0 / deltaTime, m_fps - 10.0, m_fps + 10.0);
+		m_frameTimeLog.AddPoint(time, deltaTime * 1000.0);
+		m_frameRateLog.AddPoint(time, m_fps);
+		m_frameCount++;
+
+		if (ImGui::Begin("Debug Info"))
+		{
+			ImGui::LabelText("", "CPU: %f ms", deltaTime * 1000.0);
+			ImGui::LabelText("", "FPS: %f", m_fps);
+
+			ImPlot::SetNextPlotLimitsX(time - 5.0, time, ImGuiCond_Always);
+			ImPlot::SetNextPlotLimitsY(0.0, 40.0, ImGuiCond_Once, 0);
+			ImPlot::SetNextPlotLimitsY(0.0, 160.0, ImGuiCond_Once, 1);
+			// ImPlot::FitNextPlotAxes(false, true, true, false);
+			// ImPlot::FitNextPlotAxes(false, true, true, false);
+			if (ImPlot::BeginPlot("Performance", "Time", nullptr, ImVec2(-1, 0), ImPlotFlags_Default | ImPlotFlags_YAxis2)) {
+				ImPlot::SetPlotYAxis(0);
+				ImPlot::PlotLine("FrameTime", m_frameTimeLog.GetDataX(), m_frameTimeLog.GetDataY(), m_frameTimeLog.GetSize(), m_frameTimeLog.GetOffset());
+				ImPlot::SetPlotYAxis(1);
+				ImPlot::PlotLine("FPS", m_frameRateLog.GetDataX(), m_frameRateLog.GetDataY(), m_frameRateLog.GetSize(), m_frameRateLog.GetOffset());
+				ImPlot::EndPlot();
+			}
+			ImGui::End();
+		}
 	}
 
 	~TestApp()

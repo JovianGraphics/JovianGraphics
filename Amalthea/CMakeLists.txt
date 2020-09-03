@@ -32,15 +32,13 @@ add_custom_target(AmaltheaTestShaders ALL DEPENDS
 	unlit.vert.h
 )
 
-configure_file(${CMAKE_SOURCE_DIR}/Amalthea/Test/monkey.ply ${CMAKE_BINARY_DIR}/Amalthea/monkey.ply COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/Amalthea/Test/bun_zipper_res2.ply ${CMAKE_BINARY_DIR}/Amalthea/bun_zipper_res2.ply COPYONLY)
-
 if(WIN32)
 
 add_executable(AmaltheaTest WIN32
 	Test/test.cpp
 )
 target_sources(AmaltheaTest PRIVATE ${CMAKE_SOURCE_DIR}/Io/WindowsHiDPI.manifest)
+set_property(TARGET AmaltheaTest PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
 else()
 

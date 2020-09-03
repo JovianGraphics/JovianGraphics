@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include <boost/preprocessor.hpp>
+#include <vector>
 
 typedef int8_t int8;
 typedef int16_t int16;
@@ -28,6 +29,26 @@ template <typename T> T alignUp(T x, T a)
 #define DECL_REF(T) typedef std::shared_ptr<T> Ref;
 #define REF(T) std::shared_ptr<T>
 #define SHARE(T) std::enable_shared_from_this<T>
+
+class GanymedeScrollingBuffer {
+private:
+    uint32 m_maxSize;
+    uint32 m_offset;
+    std::vector<float> m_dataX;
+    std::vector<float> m_dataY;
+
+public:
+    GanymedeScrollingBuffer(uint32 maxSize, uint32 offset);
+
+    void AddPoint(float x, float y);
+    void Erase();
+
+    inline uint32 GetSize() { return m_dataX.size(); }
+    inline uint32 GetMaxSize() { return m_maxSize; }
+    inline uint32 GetOffset() { return m_offset;  }
+    inline float* GetDataX() { return m_dataX.data(); }
+    inline float* GetDataY() { return m_dataY.data(); }
+};
 
 // http://madebyevan.com/obscure-cpp-features/?viksra
 namespace __hidden__

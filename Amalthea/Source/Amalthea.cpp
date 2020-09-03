@@ -105,7 +105,7 @@ void Amalthea::CreateSwapChain()
 	swapChainCreateInfo.format = EuropaImageFormat::BGRA8sRGB;
 	swapChainCreateInfo.imageCount = 3;
 	swapChainCreateInfo.numLayers = 1;
-	swapChainCreateInfo.presentMode = EuropaPresentMode::Mailbox;
+	swapChainCreateInfo.presentMode = EuropaPresentMode::FIFO;
 	swapChainCreateInfo.surface = m_surface;
 	swapChainCreateInfo.surfaceTransform = m_swapChainCaps.surfaceCaps.currentTransform;
 
@@ -201,7 +201,7 @@ void Amalthea::Run()
 	// Rendering thread
 	std::thread rendering([&]()
 	{
-		auto startTime = std::chrono::steady_clock::now();
+		auto startTime = std::chrono::high_resolution_clock::now();
 		auto lastTime = startTime;
 		while (running)
 		{
@@ -223,7 +223,7 @@ void Amalthea::Run()
 
 			m_device->ResetFences(1, &m_inFlightFences[currentFrame]);
 
-			auto currentTime = std::chrono::steady_clock::now();
+			auto currentTime = std::chrono::high_resolution_clock::now();
 			float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 			float runTime = std::chrono::duration<float>(currentTime - startTime).count();
 			lastTime = currentTime;
