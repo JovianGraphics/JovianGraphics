@@ -307,7 +307,6 @@ public:
 		clearValue[0].color = glm::vec4(0.0, 0.0, 0.0, 1.0);
 		clearValue[1].depthStencil = glm::vec2(1.0, 0.0);
 
-		ctx.cmdlist->Begin();
 		ctx.cmdlist->BeginRenderpass(m_mainRenderPass, m_frameBuffers[ctx.frameIndex], glm::ivec2(0), glm::uvec2(m_windowSize), 2, clearValue);
 		ctx.cmdlist->BindPipeline(m_pipeline);
 		ctx.cmdlist->BindVertexBuffer(m_vertexBuffer, 0, 0);
@@ -316,7 +315,15 @@ public:
 		ctx.cmdlist->BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint::Graphics, m_pipelineLayout, m_descSets[ctx.frameIndex], 0, constantsHandle.offset);
 		ctx.cmdlist->DrawIndexed(indices.size(), 7 * 7, 0, 0, 0);
 		ctx.cmdlist->EndRenderpass();
-		ctx.cmdlist->End();
+
+		ImGui::Begin("Debug Info");
+		ImGui::LabelText("CPU", "%f ms", deltaTime * 1000.0);
+		ImGui::LabelText("FPS", "%d", int(1.0 / deltaTime));
+		if (ImGui::Button("Up"))
+			m_orbitHeight += 1.0;
+		if (ImGui::Button("Down"))
+			m_orbitHeight -= 1.0;
+		ImGui::End();
 	}
 
 	~TestApp()

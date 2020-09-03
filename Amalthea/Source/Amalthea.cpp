@@ -74,6 +74,7 @@ void Amalthea::CreateDevice()
 	m_copyCmdlist = m_cmdpool->AllocateCommandBuffers(0, 1)[0];
 	m_transferUtil = new EuropaTransferUtil(m_device, m_cmdQueue, m_copyCmdlist, 128 << 20); // 128M
 	m_streamingBuffer = new EuropaStreamingBuffer(m_device, MAX_FRAMES_IN_FLIGHT);
+	m_imgui = new EuropaImGui(m_europa, EuropaImageFormat::BGRA8sRGB, m_device, m_cmdQueue, m_surface, m_ioSurface);
 
 	this->OnDeviceCreated();
 }
@@ -82,6 +83,7 @@ void Amalthea::DestroyDevice()
 {
 	this->OnDeviceDestroy();
 
+	GanymedeDelete(m_imgui);
 	GanymedeDelete(m_transferUtil);
 	GanymedeDelete(m_streamingBuffer);
 }
@@ -148,6 +150,11 @@ void Amalthea::CreateSwapChain()
 		m_renderFinishedSemaphore.push_back(m_device->CreateSema());
 		m_inFlightFences.push_back(m_device->CreateFence(true));
 	}
+
+	// Utils
+	std::vector<EuropaImageView::Ref> views;
+	for (auto f : m_frames) views.push_back(f.imageView);
+	m_imgui->RebuildSwapChain(m_frames.size(), m_windowSize, views.data(), m_copyCmdlist);
 
 	this->OnSwapChainCreated();
 }
@@ -223,10 +230,19 @@ void Amalthea::Run()
 
 			m_transferUtil->NewFrame();
 			m_streamingBuffer->NewFrame();
-			
+			m_imgui->NewFrame();
+
 			AmaltheaFrame& ctx = m_frames[currentFrame];
 
+			ctx.cmdlist->Begin();
+			
 			this->RenderFrame(ctx, runTime, deltaTime);
+
+			ImGui::Render();
+			ctx.cmdlist->Barrier(ctx.image, EuropaAccessNone, EuropaAccessNone, EuropaImageLayout::Present, EuropaImageLayout::ColorAttachment, EuropaPipelineStageFragmentShader, EuropaPipelineStageFragmentShader);
+			m_imgui->Render(currentFrame, ctx.cmdlist);
+
+			ctx.cmdlist->End();
 
 			EuropaPipelineStage waitStage = EuropaPipelineStageColorAttachmentOutput;
 			m_cmdQueue->Submit(1, &m_imageAvailableSemaphore[currentFrame], &waitStage, 1, &ctx.cmdlist, 1, &m_renderFinishedSemaphore[currentFrame], m_inFlightFences[currentFrame]);

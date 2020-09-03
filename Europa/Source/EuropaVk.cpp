@@ -1513,6 +1513,37 @@ void EuropaCmdlistVk::BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint b
     vkCmdBindDescriptorSets(m_cmdlist, VkPipelineBindPoint(bindPoint), std::static_pointer_cast<EuropaPipelineLayoutVk>(layout)->m_layout, set, 1, &std::static_pointer_cast<EuropaDescriptorSetVk>(descSet)->m_set, 1, &offset);
 }
 
+void EuropaCmdlistVk::Barrier(
+    EuropaImage::Ref _image,
+    EuropaAccess beforeAccess, EuropaAccess afterAccess,
+    EuropaImageLayout beforeLayout, EuropaImageLayout afterLayout,
+    EuropaPipelineStage beforeStage, EuropaPipelineStage afterStage,
+    EuropaQueue::Ref _srcQueue, EuropaQueue::Ref _dstQueue)
+{
+    EuropaImageVk::Ref image = std::static_pointer_cast<EuropaImageVk>(_image);
+    EuropaQueueVk::Ref srcQueue = std::static_pointer_cast<EuropaQueueVk>(_srcQueue);
+    EuropaQueueVk::Ref dstQueue = std::static_pointer_cast<EuropaQueueVk>(_dstQueue);
+
+    VkImageMemoryBarrier barrier{};
+
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask = VkAccessFlagBits(beforeAccess);
+    barrier.dstAccessMask = VkAccessFlagBits(afterAccess);
+    barrier.oldLayout = VkImageLayout(beforeLayout);
+    barrier.newLayout = VkImageLayout(afterLayout);
+    barrier.image = image->m_image;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+    if (srcQueue) barrier.srcQueueFamilyIndex = srcQueue->m_property.queueIndex;
+    if (dstQueue) barrier.dstQueueFamilyIndex = dstQueue->m_property.queueIndex;
+
+    vkCmdPipelineBarrier(m_cmdlist, VkPipelineStageFlagBits(beforeStage), VkPipelineStageFlagBits(afterStage), 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
 EuropaSemaphoreVk::~EuropaSemaphoreVk()
 {
     vkDestroySemaphore(m_device->m_device, m_sema, nullptr);

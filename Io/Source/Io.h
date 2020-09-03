@@ -54,6 +54,9 @@ public:
 	HWND m_hwnd;
 	HINSTANCE m_hInstance;
 
+	bool m_enableExternalCallback = false;
+	std::function<LRESULT(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)> m_externalCallback;
+
 	IoSurfaceWin32(HINSTANCE hInstance);
 	~IoSurfaceWin32();
 

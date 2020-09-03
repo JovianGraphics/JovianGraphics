@@ -5,9 +5,9 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("Io")
 
-add_library(Io
-	Source/IoSurfaceWin32.cpp
-)
+set(IoSource Source/IoSurfaceWin32.cpp)
+
+add_library(Io ${IoSource})
 
 set_property(TARGET Io PROPERTY CXX_STANDARD 17)
 

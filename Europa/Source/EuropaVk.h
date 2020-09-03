@@ -238,6 +238,12 @@ public:
 	void CopyBuffer(EuropaBuffer::Ref dst, EuropaBuffer::Ref src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0);
 	void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0);
 	void BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0, uint32 offset = 0);
+	void Barrier(
+		EuropaImage::Ref image,
+		EuropaAccess beforeAccess, EuropaAccess afterAccess,
+		EuropaImageLayout beforeLayout, EuropaImageLayout afterLayout,
+		EuropaPipelineStage beforeStage = EuropaPipelineStageAllCommands, EuropaPipelineStage afterStage = EuropaPipelineStageAllCommands,
+		EuropaQueue::Ref srcQueue = nullptr, EuropaQueue::Ref dstQueue = nullptr);
 
 	EuropaCmdlistVk() : SHARE(EuropaCmdlistVk)() {}
 	~EuropaCmdlistVk() {};

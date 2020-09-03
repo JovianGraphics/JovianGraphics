@@ -140,6 +140,9 @@ LRESULT IoSurfaceWin32::WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     m_eventCV.notify_all();
 
+    if (m_enableExternalCallback)
+        m_externalCallback(m_hwnd, uMsg, wParam, lParam);
+
     return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }
 

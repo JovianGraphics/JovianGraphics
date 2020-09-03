@@ -5,11 +5,24 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("Europa")
 
-add_library(Europa
+set(EuropaSource
 	Source/EuropaVk.cpp
 	Source/EuropaVkAllocator.cpp
 	Source/EuropaUtils.cpp
+	Source/EuropaImGui.cpp
+
+	${CMAKE_SOURCE_DIR}/External/imgui/imgui.cpp
+	${CMAKE_SOURCE_DIR}/External/imgui/imgui_draw.cpp
+	${CMAKE_SOURCE_DIR}/External/imgui/imgui_widgets.cpp
 )
+
+if(WIN32)
+	list(APPEND EuropaSource ${CMAKE_SOURCE_DIR}/External/imgui/examples/imgui_impl_win32.cpp)
+endif()
+
+list(APPEND EuropaSource ${CMAKE_SOURCE_DIR}/External/imgui/examples/imgui_impl_vulkan.cpp)
+
+add_library(Europa ${EuropaSource})
 
 set_property(TARGET Europa PROPERTY CXX_STANDARD 17)
 

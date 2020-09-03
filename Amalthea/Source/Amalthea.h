@@ -2,6 +2,7 @@
 
 #include "Europa/Source/Europa.h"
 #include "Europa/Source/EuropaUtils.h"
+#include "Europa/Source/EuropaImGui.h"
 
 struct AmaltheaFrame
 {
@@ -55,6 +56,7 @@ protected:
     EuropaCmdlist::Ref m_copyCmdlist;
     EuropaTransferUtil* m_transferUtil;
     EuropaStreamingBuffer* m_streamingBuffer;
+    EuropaImGui* m_imgui;
 
 private:
     void CreateDevice();

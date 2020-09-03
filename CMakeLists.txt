@@ -14,6 +14,7 @@ include_directories(${CMAKE_SOURCE_DIR}/External/glm)
 
 add_subdirectory(External/preprocessor)
 include_directories(${CMAKE_SOURCE_DIR}/External/preprocessor/include)
+include_directories(${CMAKE_SOURCE_DIR}/External/imgui)
 
 add_subdirectory(Ganymede)
 add_subdirectory(Himalia)
