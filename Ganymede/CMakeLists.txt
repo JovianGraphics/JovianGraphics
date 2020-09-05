@@ -7,6 +7,7 @@ project ("Ganymede")
 
 add_library(Ganymede
 	Source/Ganymede.cpp
+	Source/GanymedeECS.cpp
 )
 
 set_property(TARGET Ganymede PROPERTY CXX_STANDARD 17)

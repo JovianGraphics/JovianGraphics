@@ -4,10 +4,16 @@
 
 #include <thread>
 
-Amalthea::Amalthea(Europa& europaInstance, IoSurface::Ref ioSurface)
-    : m_europa(europaInstance)
+Amalthea::Amalthea(GanymedeECS& ecs, Europa& europaInstance, IoSurface::Ref ioSurface)
+    : m_ecs(ecs)
+	, m_europa(europaInstance)
 	, m_ioSurface(ioSurface)
 {
+	m_events.OnCreateDevice = m_ecs.RegisterEvent();
+	m_events.OnCreateSwapChain = m_ecs.RegisterEvent();
+	m_events.OnDestroyDevice = m_ecs.RegisterEvent();
+	m_events.OnDestroySwapChain = m_ecs.RegisterEvent();
+	m_events.OnRender = m_ecs.RegisterEvent();
 }
 
 Amalthea::~Amalthea()
@@ -76,12 +82,13 @@ void Amalthea::CreateDevice()
 	m_streamingBuffer = new EuropaStreamingBuffer(m_device, MAX_FRAMES_IN_FLIGHT);
 	m_imgui = new EuropaImGui(m_europa, EuropaImageFormat::BGRA8sRGB, m_device, m_cmdQueue, m_surface, m_ioSurface);
 
-	this->OnDeviceCreated();
+	// Launch Signal
+	m_ecs.Signal(m_events.OnCreateDevice, this);
 }
 
 void Amalthea::DestroyDevice()
 {
-	this->OnDeviceDestroy();
+	m_ecs.Signal(m_events.OnDestroyDevice, this);
 
 	GanymedeDelete(m_imgui);
 	GanymedeDelete(m_transferUtil);
@@ -105,7 +112,7 @@ void Amalthea::CreateSwapChain()
 	swapChainCreateInfo.format = EuropaImageFormat::BGRA8sRGB;
 	swapChainCreateInfo.imageCount = 3;
 	swapChainCreateInfo.numLayers = 1;
-	swapChainCreateInfo.presentMode = EuropaPresentMode::FIFO;
+	swapChainCreateInfo.presentMode = EuropaPresentMode::Mailbox;
 	swapChainCreateInfo.surface = m_surface;
 	swapChainCreateInfo.surfaceTransform = m_swapChainCaps.surfaceCaps.currentTransform;
 
@@ -156,12 +163,12 @@ void Amalthea::CreateSwapChain()
 	for (auto f : m_frames) views.push_back(f.imageView);
 	m_imgui->RebuildSwapChain(m_frames.size(), m_windowSize, views.data(), m_copyCmdlist);
 
-	this->OnSwapChainCreated();
+	m_ecs.Signal(m_events.OnCreateSwapChain, this);
 }
 
 void Amalthea::DestroySwapChain()
 {
-	this->OnSwapChainDestroy();
+	m_ecs.Signal(m_events.OnDestroySwapChain, this);
 
 	m_inFlightFences.clear();
 	m_imagesInFlight.clear();
@@ -236,7 +243,7 @@ void Amalthea::Run()
 
 			ctx.cmdlist->Begin();
 			
-			this->RenderFrame(ctx, runTime, deltaTime);
+			m_ecs.Signal(m_events.OnRender, this, ctx, runTime, deltaTime);
 
 			ImGui::Render();
 			ctx.cmdlist->Barrier(ctx.image, EuropaAccessNone, EuropaAccessNone, EuropaImageLayout::Present, EuropaImageLayout::ColorAttachment, EuropaPipelineStageFragmentShader, EuropaPipelineStageFragmentShader);

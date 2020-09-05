@@ -2,11 +2,9 @@
 
 #ifdef IO_WIN32
 
-#include <fcntl.h>
-#include <io.h>
-#include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <Windowsx.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -105,7 +103,7 @@ void IoSurfaceWin32::SetKeyCallback(std::function<void(uint8_t, uint16, std::str
 
 bool IoSurfaceWin32::IsKeyDown(uint8_t key)
 {
-    if (+(GetKeyState(key) & 0x8000))
+    if (+(GetAsyncKeyState(key) & 0x8000))
     {
         return true;
     }
@@ -135,6 +133,9 @@ LRESULT IoSurfaceWin32::WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_CHAR:
         this->keyCallback(uint8(wParam), uint16(wParam), "", IoKeyboardEvent::CharacterInput);
+        break;
+    case WM_MOUSEMOVE:
+        GanymedePrint "Mouse moved", GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam);
         break;
     }
 

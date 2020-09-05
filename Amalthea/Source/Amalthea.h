@@ -4,6 +4,8 @@
 #include "Europa/Source/EuropaUtils.h"
 #include "Europa/Source/EuropaImGui.h"
 
+#include "Ganymede/Source/GanymedeECS.h"
+
 struct AmaltheaFrame
 {
     EuropaImage::Ref image;
@@ -12,22 +14,35 @@ struct AmaltheaFrame
     uint32 frameIndex;
 };
 
+class Amalthea;
+
 class AmaltheaBehaviors
 {
 public:
-    virtual void OnDeviceCreated() = 0;
-    virtual void OnDeviceDestroy() = 0;
-    virtual void OnSwapChainCreated() = 0;
-    virtual void OnSwapChainDestroy() = 0;
-    virtual void RenderFrame(AmaltheaFrame& ctx, float time, float deltaTime) = 0;
+    struct Events {
+        uint32 OnCreateDevice;
+        uint32 OnDestroyDevice;
+        uint32 OnCreateSwapChain;
+        uint32 OnDestroySwapChain;
+        uint32 OnRender;
+    };
+
+    typedef std::function<void(Amalthea* amalthea)> OnCreateDevice;
+    typedef std::function<void(Amalthea* amalthea)> OnDestroyDevice;
+    typedef std::function<void(Amalthea* amalthea)> OnCreateSwapChain;
+    typedef std::function<void(Amalthea* amalthea)> OnDestroySwapChain;
+    typedef std::function<void(Amalthea* amalthea, AmaltheaFrame& ctx, float time, float deltaTime)> OnRender;
 };
 
-class Amalthea : public AmaltheaBehaviors
+class Amalthea
 {
 public:
     const int MAX_FRAMES_IN_FLIGHT = 3;
 
-protected:
+private:
+    GanymedeECS& m_ecs;
+
+public:
     Europa& m_europa;
     REF(IoSurface) m_ioSurface;
 
@@ -58,6 +73,8 @@ protected:
     EuropaStreamingBuffer* m_streamingBuffer;
     EuropaImGui* m_imgui;
 
+    AmaltheaBehaviors::Events m_events;
+
 private:
     void CreateDevice();
     void DestroyDevice();
@@ -68,6 +85,6 @@ private:
 public:
     void Run();
 
-    Amalthea(Europa& europaInstance, REF(IoSurface) ioSurface);
+    Amalthea(GanymedeECS& ecs, Europa& europaInstance, REF(IoSurface) ioSurface);
     virtual ~Amalthea();
 };

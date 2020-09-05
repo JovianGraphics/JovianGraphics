@@ -25,6 +25,7 @@ add_executable(IoTest
 
 endif()
 
+target_link_libraries(Io PUBLIC Ganymede)
 target_link_libraries(IoTest PUBLIC Io)
 
 include_directories(Source)

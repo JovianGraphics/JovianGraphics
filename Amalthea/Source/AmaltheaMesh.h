@@ -2,7 +2,8 @@
 
 #include "Amalthea.h"
 
-class AmaltheaForwardRP : public Amalthea
+class AmaltheaMeshSystem
 {
+public:
 
 };

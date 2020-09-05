@@ -175,7 +175,7 @@ EuropaImGui::EuropaImGui(Europa& europa, EuropaImageFormat imageFormat, EuropaDe
 		info.DescriptorPool = std::static_pointer_cast<EuropaDescriptorPoolVk>(m_descPool)->m_pool;
 		info.MinImageCount = 3;
 		info.ImageCount = 3;
-		info.MSAASamples = VK_SAMPLE_COUNT_4_BIT;
+		info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		info.Allocator = nullptr;
 		info.CheckVkResultFn = nullptr;
 
