@@ -9,8 +9,6 @@ add_library(Amalthea
 	Source/Amalthea.cpp
 )
 
-set_property(TARGET Amalthea PROPERTY CXX_STANDARD 17)
-
 target_link_libraries(Amalthea PUBLIC Europa Ganymede)
 
 add_custom_command(

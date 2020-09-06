@@ -9,8 +9,6 @@ add_library(Himalia
 	Source/Himalia.cpp
 )
 
-set_property(TARGET Himalia PROPERTY CXX_STANDARD 17)
-
 target_link_libraries(Himalia PUBLIC Ganymede)
 
 include_directories(Source)

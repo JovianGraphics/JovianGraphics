@@ -9,8 +9,6 @@ set(IoSource Source/IoSurfaceWin32.cpp)
 
 add_library(Io ${IoSource})
 
-set_property(TARGET Io PROPERTY CXX_STANDARD 17)
-
 if(WIN32)
 
 add_executable(IoTest WIN32

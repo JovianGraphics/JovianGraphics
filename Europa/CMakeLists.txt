@@ -27,8 +27,6 @@ list(APPEND EuropaSource ${CMAKE_SOURCE_DIR}/External/imgui/examples/imgui_impl_
 
 add_library(Europa ${EuropaSource})
 
-set_property(TARGET Europa PROPERTY CXX_STANDARD 17)
-
 find_package(Vulkan REQUIRED)
 target_link_libraries(Europa PUBLIC Ganymede Vulkan::Vulkan)
 include_directories(PUBLIC ${Vulkan_INCLUDE_DIRS})

@@ -10,8 +10,6 @@ add_library(Ganymede
 	Source/GanymedeECS.cpp
 )
 
-set_property(TARGET Ganymede PROPERTY CXX_STANDARD 17)
-
 target_link_libraries(Ganymede Boost::preprocessor)
 
 include_directories(Source)
