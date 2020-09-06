@@ -11,17 +11,19 @@ else()
   set(CMAKE_CXX_FLAGS "-std=c++17 -werror")
 endif()
 
+set(JovianSrcDir ${CMAKE_CURRENT_SOURCE_DIR})
+
 configure_file(config.h.in generated/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/generated)
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${JovianSrcDir})
 
 add_subdirectory(External/glm)
-include_directories(${CMAKE_SOURCE_DIR}/External/glm)
+include_directories(${JovianSrcDir}/External/glm)
 
 add_subdirectory(External/preprocessor)
-include_directories(${CMAKE_SOURCE_DIR}/External/preprocessor/include)
-include_directories(${CMAKE_SOURCE_DIR}/External/imgui)
-include_directories(${CMAKE_SOURCE_DIR}/External/implot)
+include_directories(${JovianSrcDir}/External/preprocessor/include)
+include_directories(${JovianSrcDir}/External/imgui)
+include_directories(${JovianSrcDir}/External/implot)
 
 add_subdirectory(Ganymede)
 add_subdirectory(Himalia)

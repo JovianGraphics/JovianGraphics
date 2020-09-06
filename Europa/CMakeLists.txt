@@ -11,19 +11,19 @@ set(EuropaSource
 	Source/EuropaUtils.cpp
 	Source/EuropaImGui.cpp
 
-	${CMAKE_SOURCE_DIR}/External/imgui/imgui.cpp
-	${CMAKE_SOURCE_DIR}/External/imgui/imgui_draw.cpp
-	${CMAKE_SOURCE_DIR}/External/imgui/imgui_widgets.cpp
+	${JovianSrcDir}/External/imgui/imgui.cpp
+	${JovianSrcDir}/External/imgui/imgui_draw.cpp
+	${JovianSrcDir}/External/imgui/imgui_widgets.cpp
 
-	${CMAKE_SOURCE_DIR}/External/implot/implot.cpp
-	${CMAKE_SOURCE_DIR}/External/implot/implot_items.cpp
+	${JovianSrcDir}/External/implot/implot.cpp
+	${JovianSrcDir}/External/implot/implot_items.cpp
 )
 
 if(WIN32)
-	list(APPEND EuropaSource ${CMAKE_SOURCE_DIR}/External/imgui/examples/imgui_impl_win32.cpp)
+	list(APPEND EuropaSource ${JovianSrcDir}/External/imgui/examples/imgui_impl_win32.cpp)
 endif()
 
-list(APPEND EuropaSource ${CMAKE_SOURCE_DIR}/External/imgui/examples/imgui_impl_vulkan.cpp)
+list(APPEND EuropaSource ${JovianSrcDir}/External/imgui/examples/imgui_impl_vulkan.cpp)
 
 add_library(Europa ${EuropaSource})
 
@@ -34,13 +34,13 @@ include_directories(PUBLIC ${Vulkan_INCLUDE_DIRS})
 add_custom_command(
 	OUTPUT triangle.frag.h
 	PRE_BUILD
-	COMMAND ruby ${CMAKE_SOURCE_DIR}/Europa/Tools/compile_shader.rb ${CMAKE_SOURCE_DIR}/Europa/Test/triangle.frag output=${CMAKE_BINARY_DIR}/generated/triangle.frag.h
+	COMMAND ruby ${JovianSrcDir}/Europa/Tools/compile_shader.rb ${JovianSrcDir}/Europa/Test/triangle.frag output=${CMAKE_BINARY_DIR}/generated/triangle.frag.h
 )
 
 add_custom_command(
 	OUTPUT triangle.vert.h
 	PRE_BUILD
-	COMMAND ruby ${CMAKE_SOURCE_DIR}/Europa/Tools/compile_shader.rb ${CMAKE_SOURCE_DIR}/Europa/Test/triangle.vert output=${CMAKE_BINARY_DIR}/generated/triangle.vert.h
+	COMMAND ruby ${JovianSrcDir}/Europa/Tools/compile_shader.rb ${JovianSrcDir}/Europa/Test/triangle.vert output=${CMAKE_BINARY_DIR}/generated/triangle.vert.h
 )
 
 add_custom_target(EuropaTestShaders ALL DEPENDS

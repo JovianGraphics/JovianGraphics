@@ -14,15 +14,15 @@ target_link_libraries(Amalthea PUBLIC Europa Ganymede)
 add_custom_command(
 	OUTPUT unlit.frag.h
 	PRE_BUILD
-	COMMAND ruby ${CMAKE_SOURCE_DIR}/Europa/Tools/compile_shader.rb ${CMAKE_SOURCE_DIR}/Amalthea/Test/unlit.frag output=${CMAKE_BINARY_DIR}/generated/unlit.frag.h
-	MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/Amalthea/Test/unlit.frag
+	COMMAND ruby ${JovianSrcDir}/Europa/Tools/compile_shader.rb ${JovianSrcDir}/Amalthea/Test/unlit.frag output=${CMAKE_BINARY_DIR}/generated/unlit.frag.h
+	MAIN_DEPENDENCY ${JovianSrcDir}/Amalthea/Test/unlit.frag
 )
 
 add_custom_command(
 	OUTPUT unlit.vert.h
 	PRE_BUILD
-	COMMAND ruby ${CMAKE_SOURCE_DIR}/Europa/Tools/compile_shader.rb ${CMAKE_SOURCE_DIR}/Amalthea/Test/unlit.vert output=${CMAKE_BINARY_DIR}/generated/unlit.vert.h
-	MAIN_DEPENDENCY ${CMAKE_SOURCE_DIR}/Amalthea/Test/unlit.vert
+	COMMAND ruby ${JovianSrcDir}/Europa/Tools/compile_shader.rb ${JovianSrcDir}/Amalthea/Test/unlit.vert output=${CMAKE_BINARY_DIR}/generated/unlit.vert.h
+	MAIN_DEPENDENCY ${JovianSrcDir}/Amalthea/Test/unlit.vert
 )
 
 add_custom_target(AmaltheaTestShaders ALL DEPENDS
@@ -35,8 +35,8 @@ if(WIN32)
 add_executable(AmaltheaTest WIN32
 	Test/test.cpp
 )
-target_sources(AmaltheaTest PRIVATE ${CMAKE_SOURCE_DIR}/Io/WindowsHiDPI.manifest)
-set_property(TARGET AmaltheaTest PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+target_sources(AmaltheaTest PRIVATE ${JovianSrcDir}/Io/WindowsHiDPI.manifest)
+set_property(TARGET AmaltheaTest PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${JovianSrcDir}")
 
 else()
 
