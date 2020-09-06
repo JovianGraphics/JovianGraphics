@@ -4,6 +4,7 @@
 layout(binding = 0) uniform Constants {
     mat4 viewMtx;
     mat4 projMtx;
+    uint numLights;
 };
 
 layout(location = 0) in vec3 inPosition;

@@ -63,6 +63,7 @@ public:
 	void WaitForFences(uint32 numFences, EuropaFence::Ref* fences, bool waitAll = true, uint64 timeout = UINT64_MAX);
 	void ResetFences(uint32 numFences, EuropaFence::Ref* fences);
 	EuropaBuffer::Ref CreateBuffer(EuropaBufferInfo& args);
+	EuropaBufferView::Ref CreateBufferView(EuropaBuffer::Ref buffer, uint32 size, uint32 offset = 0, EuropaImageFormat format = EuropaImageFormat::Undefined);
 
 	uint32 GetMinUniformBufferOffsetAlignment();
 
@@ -100,6 +101,19 @@ public:
 
 	EuropaBufferVk() : SHARE(EuropaBufferVk)() {}
 	~EuropaBufferVk();
+};
+
+class EuropaBufferViewVk : public EuropaBufferView, public SHARE(EuropaBufferViewVk)
+{
+public:
+	DECL_REF(EuropaBufferViewVk);
+
+	EuropaDeviceVk::Ref m_device;
+	EuropaBufferVk::Ref m_buffer;
+	VkBufferView m_view;
+
+	EuropaBufferViewVk() : SHARE(EuropaBufferViewVk)() {}
+	~EuropaBufferViewVk();
 };
 
 class EuropaImageVk : public EuropaImage, public SHARE(EuropaImageVk)
@@ -184,6 +198,7 @@ public:
 
 	void SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement);
 	void SetUniformBufferDynamic(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement);
+	void SetBufferView(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement);
 
 	EuropaDescriptorSetVk() : SHARE(EuropaDescriptorSetVk)() {}
 	~EuropaDescriptorSetVk() {};
@@ -287,6 +302,7 @@ public:
 	void Clear();
 	void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage);
 	void DynamicUniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage);
+	void BufferView(uint32 binding, uint32 count, EuropaShaderStage stage);
 
 	EuropaDescriptorSetLayoutVk() : SHARE(EuropaDescriptorSetLayoutVk)() {}
 	~EuropaDescriptorSetLayoutVk();

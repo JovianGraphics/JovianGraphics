@@ -3,6 +3,8 @@
 #include "config.h"
 #include "Ganymede/Source/Ganymede.h"
 
+#include "ForwardDecl.h"
+
 #include <vector>
 #include <optional>
 
@@ -323,7 +325,7 @@ GANYMEDE_ENUM(EuropaMemoryUsage,
 class EuropaSemaphore
 {
 public:
-	DECL_REF(EuropaSemaphore)
+	DECL_REF(EuropaSemaphore);
 
 	virtual ~EuropaSemaphore() {};
 };
@@ -331,7 +333,7 @@ public:
 class EuropaFence
 {
 public:
-	DECL_REF(EuropaFence)
+	DECL_REF(EuropaFence);
 
 	virtual ~EuropaFence() {};
 };
@@ -362,7 +364,7 @@ struct EuropaSwapChainCapabilities
 class EuropaSurface
 {
 public:
-	DECL_REF(EuropaSurface)
+	DECL_REF(EuropaSurface);
 
 	virtual ~EuropaSurface() {};
 };
@@ -393,7 +395,7 @@ struct EuropaSwapChainCreateInfo
 class EuropaSwapChain
 {
 public:
-	DECL_REF(EuropaSwapChain)
+	DECL_REF(EuropaSwapChain);
 
 	static const int32 NextImageOutOfDate = -1000001004;
 	static const int32 NextImageSubOptimal = 1000001003;
@@ -406,7 +408,7 @@ public:
 class EuropaQueue
 {
 public:
-	DECL_REF(EuropaQueue)
+	DECL_REF(EuropaQueue);
 
 	EuropaQueueFamilyProperties m_property;
 
@@ -439,7 +441,7 @@ struct EuropaImageInfo
 class EuropaImage
 {
 public:
-	DECL_REF(EuropaImage)
+	DECL_REF(EuropaImage);
 
 	virtual ~EuropaImage() {};
 };
@@ -458,7 +460,7 @@ struct EuropaImageViewCreateInfo
 class EuropaImageView
 {
 public:
-	DECL_REF(EuropaImageView)
+	DECL_REF(EuropaImageView);
 
 	virtual ~EuropaImageView() {};
 };
@@ -466,7 +468,7 @@ public:
 class EuropaShaderModule
 {
 public:
-	DECL_REF(EuropaShaderModule)
+	DECL_REF(EuropaShaderModule);
 
 	virtual ~EuropaShaderModule() {};
 };
@@ -548,12 +550,13 @@ struct EuropaDepthStencilStateInfo
 class EuropaDescriptorSetLayout
 {
 public:
-	DECL_REF(EuropaDescriptorSetLayout)
+	DECL_REF(EuropaDescriptorSetLayout);
 
 	virtual void Build() = 0;
 	virtual void Clear() = 0;
 	virtual void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 	virtual void DynamicUniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
+	virtual void BufferView(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 
 	virtual ~EuropaDescriptorSetLayout() {};
 };
@@ -568,7 +571,7 @@ struct EuropaPipelineLayoutInfo
 class EuropaPipelineLayout
 {
 public:
-	DECL_REF(EuropaPipelineLayout)
+	DECL_REF(EuropaPipelineLayout);
 
 	virtual ~EuropaPipelineLayout() {};
 };
@@ -593,7 +596,7 @@ struct EuropaAttachmentReference
 class EuropaRenderPass
 {
 public:
-	DECL_REF(EuropaRenderPass)
+	DECL_REF(EuropaRenderPass);
 
 	static const uint32 SubpassExternal = 0xFFFFFFFF;
 
@@ -616,7 +619,7 @@ struct EuropaBufferInfo
 class EuropaBuffer
 {
 public:
-	DECL_REF(EuropaBuffer)
+	DECL_REF(EuropaBuffer);
 
 	virtual void* MapT() = 0;
 	virtual void Unmap() = 0;
@@ -625,6 +628,14 @@ public:
 	template <typename T> T* Map() { return reinterpret_cast<T*>(this->MapT()); };
 
 	virtual ~EuropaBuffer() {};
+};
+
+class EuropaBufferView
+{
+public:
+	DECL_REF(EuropaBufferView);
+
+	virtual ~EuropaBufferView() {};
 };
 
 struct EuropaGraphicsPipelineCreateInfo
@@ -648,7 +659,7 @@ struct EuropaGraphicsPipelineCreateInfo
 class EuropaGraphicsPipeline
 {
 public:
-	DECL_REF(EuropaGraphicsPipeline)
+	DECL_REF(EuropaGraphicsPipeline);
 
 	virtual ~EuropaGraphicsPipeline() {};
 };
@@ -665,7 +676,7 @@ struct EuropaFramebufferCreateInfo
 class EuropaFramebuffer
 {
 public:
-	DECL_REF(EuropaFramebuffer)
+	DECL_REF(EuropaFramebuffer);
 
 	virtual ~EuropaFramebuffer() {};
 };
@@ -673,10 +684,11 @@ public:
 class EuropaDescriptorSet
 {
 public:
-	DECL_REF(EuropaDescriptorSet)
+	DECL_REF(EuropaDescriptorSet);
 
 	virtual void SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
 	virtual void SetUniformBufferDynamic(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
+	virtual void SetBufferView(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement) = 0;
 
 	virtual ~EuropaDescriptorSet() {};
 };
@@ -689,7 +701,7 @@ typedef union EuropaClearValue {
 class EuropaCmdlist
 {
 public:
-	DECL_REF(EuropaCmdlist)
+	DECL_REF(EuropaCmdlist);
 
 	virtual void Begin() = 0;
 	virtual void End() = 0;
@@ -731,7 +743,7 @@ struct EuropaDescriptorPoolSizes
 class EuropaDescriptorPool
 {
 public:
-	DECL_REF(EuropaDescriptorPool)
+	DECL_REF(EuropaDescriptorPool);
 
 	virtual EuropaDescriptorSet::Ref AllocateDescriptorSet(EuropaDescriptorSetLayout::Ref layout) = 0;
 
@@ -741,7 +753,7 @@ public:
 class EuropaCommandPool
 {
 public:
-	DECL_REF(EuropaCommandPool)
+	DECL_REF(EuropaCommandPool);
 
 	virtual std::vector<EuropaCmdlist::Ref> AllocateCommandBuffers(uint8 level, uint32 count) = 0;
 	virtual ~EuropaCommandPool() {};
@@ -750,7 +762,7 @@ public:
 class EuropaDevice
 {
 public:
-	DECL_REF(EuropaDevice)
+	DECL_REF(EuropaDevice);
 
 	virtual EuropaDeviceType GetType() = 0;
 	virtual std::string GetName() = 0;
@@ -776,6 +788,7 @@ public:
 	virtual void WaitForFences(uint32 numFences, EuropaFence::Ref* fences, bool waitAll = true, uint64 timeout = UINT64_MAX) = 0;
 	virtual void ResetFences(uint32 numFences, EuropaFence::Ref* fences) = 0;
 	virtual EuropaBuffer::Ref CreateBuffer(EuropaBufferInfo& args) = 0;
+	virtual EuropaBufferView::Ref CreateBufferView(EuropaBuffer::Ref buffer, uint32 size, uint32 offset = 0, EuropaImageFormat format = EuropaImageFormat::Undefined) = 0;
 
 	virtual uint32 GetMinUniformBufferOffsetAlignment() = 0;
 
