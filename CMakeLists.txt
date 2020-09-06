@@ -14,16 +14,20 @@ endif()
 set(JovianSrcDir ${CMAKE_CURRENT_SOURCE_DIR})
 
 configure_file(config.h.in generated/config.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/generated)
-include_directories(${JovianSrcDir})
 
 add_subdirectory(External/glm)
-include_directories(${JovianSrcDir}/External/glm)
-
 add_subdirectory(External/preprocessor)
-include_directories(${JovianSrcDir}/External/preprocessor/include)
-include_directories(${JovianSrcDir}/External/imgui)
-include_directories(${JovianSrcDir}/External/implot)
+
+set(JovianIncludeDir
+  ${CMAKE_CURRENT_BINARY_DIR}/generated
+  ${JovianSrcDir}
+  ${JovianSrcDir}/External/glm
+  ${JovianSrcDir}/External/preprocessor/include
+  ${JovianSrcDir}/External/imgui
+  ${JovianSrcDir}/External/implot
+)
+
+include_directories(${JovianIncludeDir})
 
 add_subdirectory(Ganymede)
 add_subdirectory(Himalia)

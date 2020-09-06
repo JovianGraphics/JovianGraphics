@@ -23,6 +23,9 @@ end
 
 puts "Compiling " + shader_file_name + " to " + output_file_name
 
+require 'fileutils'
+FileUtils.mkdir_p File.dirname(output_file_name)
+
 # ==============================================================================
 
 compiler_options = ""
