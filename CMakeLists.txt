@@ -29,6 +29,8 @@ set(JovianIncludeDir
 
 include_directories(${JovianIncludeDir})
 
+set(JovianIncludeDir ${JovianIncludeDir} CACHE STRING "Jovian Graphics Include Directories")
+
 add_subdirectory(Ganymede)
 add_subdirectory(Himalia)
 add_subdirectory(Io)
