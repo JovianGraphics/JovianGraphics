@@ -1563,6 +1563,24 @@ void EuropaCmdlistVk::Barrier(
     vkCmdPipelineBarrier(m_cmdlist, VkPipelineStageFlagBits(beforeStage), VkPipelineStageFlagBits(afterStage), 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
+void EuropaCmdlistVk::ClearImage(EuropaImage::Ref image, EuropaImageLayout layout, glm::vec4 color, uint32 baseMipLevel, uint32 baseArrayLayer, uint32 numMipLevls, uint32 numArrayLayers)
+{
+    VkImageSubresourceRange range{};
+    range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    range.baseMipLevel = baseMipLevel;
+    range.baseArrayLayer = baseArrayLayer;
+    range.levelCount = numMipLevls;
+    range.layerCount = numArrayLayers;
+
+    VkClearColorValue v;
+    v.float32[0] = color.r;
+    v.float32[1] = color.g;
+    v.float32[2] = color.b;
+    v.float32[3] = color.a;
+
+    vkCmdClearColorImage(m_cmdlist, std::static_pointer_cast<EuropaImageVk>(image)->m_image, VkImageLayout(layout), &v, 1, &range);
+}
+
 EuropaSemaphoreVk::~EuropaSemaphoreVk()
 {
     vkDestroySemaphore(m_device->m_device, m_sema, nullptr);
@@ -1763,6 +1781,19 @@ void EuropaDescriptorSetLayoutVk::BufferViewStorage(uint32 binding, uint32 count
     m_bindings.push_back(layoutBinding);
 }
 
+void EuropaDescriptorSetLayoutVk::ImageViewStorage(uint32 binding, uint32 count, EuropaShaderStage stage)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    layoutBinding.binding = binding;
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    layoutBinding.descriptorCount = count;
+    layoutBinding.stageFlags = VkShaderStageFlagBits(stage);
+    layoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    m_bindings.push_back(layoutBinding);
+}
+
+
 void EuropaDescriptorSetLayoutVk::Storage(uint32 binding, uint32 count, EuropaShaderStage stage)
 {
     VkDescriptorSetLayoutBinding layoutBinding{};
@@ -1882,6 +1913,28 @@ void EuropaDescriptorSetVk::SetBufferViewStorage(EuropaBufferView::Ref view, uin
     descriptorWrite.pBufferInfo = nullptr;
     descriptorWrite.pImageInfo = nullptr;
     descriptorWrite.pTexelBufferView = &(std::static_pointer_cast<EuropaBufferViewVk>(view)->m_view);
+
+    vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void EuropaDescriptorSetVk::SetImageViewStorage(EuropaImageView::Ref view, EuropaImageLayout layout, uint32 binding, uint32 arrayElement)
+{
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageView = std::static_pointer_cast<EuropaImageViewVk>(view)->m_view;
+    imageInfo.imageLayout = VkImageLayout(layout);
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_set;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = arrayElement;
+
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    descriptorWrite.descriptorCount = 1;
+
+    descriptorWrite.pBufferInfo = nullptr;
+    descriptorWrite.pImageInfo = &imageInfo;
+    descriptorWrite.pTexelBufferView = nullptr;
 
     vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
 }

@@ -558,6 +558,7 @@ public:
 	virtual void DynamicUniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 	virtual void BufferViewUniform(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 	virtual void BufferViewStorage(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
+	virtual void ImageViewStorage(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 	virtual void Storage(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 
 	virtual ~EuropaDescriptorSetLayout() {};
@@ -692,6 +693,7 @@ public:
 	virtual void SetUniformBufferDynamic(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
 	virtual void SetBufferViewUniform(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement) = 0;
 	virtual void SetBufferViewStorage(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement) = 0;
+	virtual void SetImageViewStorage(EuropaImageView::Ref view, EuropaImageLayout layout, uint32 binding, uint32 arrayElement) = 0;
 	virtual void SetStorage(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
 
 	virtual ~EuropaDescriptorSet() {};
@@ -725,6 +727,7 @@ public:
 		EuropaImageLayout beforeLayout, EuropaImageLayout afterLayout,
 		EuropaPipelineStage beforeStage = EuropaPipelineStageAllCommands, EuropaPipelineStage afterStage = EuropaPipelineStageAllCommands,
 		EuropaQueue::Ref srcQueue = nullptr, EuropaQueue::Ref dstQueue = nullptr) = 0;
+	virtual void ClearImage(EuropaImage::Ref image, EuropaImageLayout layout, glm::vec4 color, uint32 baseMipLevel = 0, uint32 baseArrayLayer = 0, uint32 numMipLevls = 1, uint32 numArrayLayers = 1) = 0;
 
 	virtual ~EuropaCmdlist() {};
 };
