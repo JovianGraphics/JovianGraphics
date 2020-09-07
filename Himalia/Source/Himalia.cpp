@@ -1,5 +1,7 @@
 #include "Himalia.h"
 
+#include <glm/gtc/type_precision.hpp>
+
 #include <fstream>
 #include <limits>
 
@@ -28,6 +30,14 @@ void HimaliaMesh::BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaV
             case HimaliaVertexProperty::ColorRGBA:
                 *(reinterpret_cast<glm::vec4*>((uint8*)(v) + stride * i + offset)) = color[i];
                 if (!offsets) offset += sizeof(glm::vec4);
+                break;
+            case HimaliaVertexProperty::Color8:
+                *(reinterpret_cast<glm::u8vec3*>((uint8*)(v) + stride * i + offset)) = glm::u8vec3(color[i] * 255);
+                if (!offsets) offset += sizeof(glm::u8vec3);
+                break;
+            case HimaliaVertexProperty::ColorRGBA8:
+                *(reinterpret_cast<glm::u8vec4*>((uint8*)(v) + stride * i + offset)) = glm::u8vec4(color[i] * 255);
+                if (!offsets) offset += sizeof(glm::u8vec4);
                 break;
             case HimaliaVertexProperty::UV:
                 *(reinterpret_cast<glm::vec2*>((uint8*)(v) + stride * i + offset)) = uv[i];

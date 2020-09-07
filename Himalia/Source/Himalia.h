@@ -12,6 +12,8 @@ GANYMEDE_ENUM(HimaliaVertexProperty,
     (Normal)
     (Color)
     (ColorRGBA)
+    (Color8)
+    (ColorRGBA8)
     (UV)
 )
 
