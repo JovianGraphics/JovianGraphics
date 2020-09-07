@@ -3,34 +3,34 @@
 #include <fstream>
 #include <limits>
 
-void HimaliaMesh::BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaVertexProperty* properties)
+void HimaliaMesh::BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaVertexProperty* properties, uint32* offsets)
 {
     for (uint32 i = 0; i < numVertices; i++)
     {
-        size_t offset = 0;
+        size_t offset = offsets ? offsets[i] : 0;
         for (uint32 p = 0; p < numProperty; p++)
         {
             switch (properties[p])
             {
             case HimaliaVertexProperty::Position:
                 *(reinterpret_cast<glm::vec3*>((uint8*)(v) + stride * i + offset)) = position[i];
-                offset += sizeof(glm::vec3);
+                if (!offsets) offset += sizeof(glm::vec3);
                 break;
             case HimaliaVertexProperty::Normal:
                 *(reinterpret_cast<glm::vec3*>((uint8*)(v) + stride * i + offset)) = normal[i];
-                offset += sizeof(glm::vec3);
+                if (!offsets) offset += sizeof(glm::vec3);
                 break;
             case HimaliaVertexProperty::Color:
                 *(reinterpret_cast<glm::vec3*>((uint8*)(v) + stride * i + offset)) = glm::vec3(color[i]);
-                offset += sizeof(glm::vec3);
+                if (!offsets) offset += sizeof(glm::vec3);
                 break;
             case HimaliaVertexProperty::ColorRGBA:
                 *(reinterpret_cast<glm::vec4*>((uint8*)(v) + stride * i + offset)) = color[i];
-                offset += sizeof(glm::vec4);
+                if (!offsets) offset += sizeof(glm::vec4);
                 break;
             case HimaliaVertexProperty::UV:
                 *(reinterpret_cast<glm::vec2*>((uint8*)(v) + stride * i + offset)) = uv[i];
-                offset += sizeof(glm::vec2);
+                if (!offsets) offset += sizeof(glm::vec2);
                 break;
             }
         }

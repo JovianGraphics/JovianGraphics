@@ -26,11 +26,11 @@ public:
 
     uint32 numVertices = 0;
 
-    void BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaVertexProperty* properties);
-    template <typename vertexT> void BuildVertices(std::vector<vertexT>& vertexBuffer, uint32 numProperty, HimaliaVertexProperty* properties)
+    void BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaVertexProperty* properties, uint32* offsets = nullptr);
+    template <typename vertexT> void BuildVertices(std::vector<vertexT>& vertexBuffer, uint32 numProperty, HimaliaVertexProperty* properties, uint32* offsets = nullptr)
     {
         vertexBuffer.resize(numVertices);
-        BuildMesh(vertexBuffer.data(), sizeof(vertexT), numProperty, properties);
+        BuildMesh(vertexBuffer.data(), sizeof(vertexT), numProperty, properties, offsets);
     }
 
     template <typename indexT> void BuildIndices(std::vector<indexT>& indexBuffer)
