@@ -7,9 +7,10 @@ void HimaliaMesh::BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaV
 {
     for (uint32 i = 0; i < numVertices; i++)
     {
-        size_t offset = offsets ? offsets[i] : 0;
+        size_t offset = 0;
         for (uint32 p = 0; p < numProperty; p++)
         {
+            if (offset) offset = offsets[p];
             switch (properties[p])
             {
             case HimaliaVertexProperty::Position:
