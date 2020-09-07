@@ -7,7 +7,13 @@ layout(binding = 0) uniform Constants {
     uint numLights;
 };
 
-layout(binding = 1) uniform samplerBuffer lights;
+struct Light
+{
+    vec4 pos;
+    vec4 color;
+};
+
+layout(binding = 1, rgba32f) uniform readonly imageBuffer lights;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 normal;
@@ -20,8 +26,8 @@ void main() {
 
     for (uint i = 0; i < numLights; i++)
     {
-        vec3 lightPos = texelFetch(lights, int(i * 2)).rgb;
-        vec3 lightColor = texelFetch(lights, int(i * 2 + 1)).rgb;
+        vec3 lightPos = imageLoad(lights, int(i * 2)).rgb;
+        vec3 lightColor = imageLoad(lights, int(i * 2 + 1)).rgb;
 
         vec3 L = normalize(lightPos - pos.xyz);
 

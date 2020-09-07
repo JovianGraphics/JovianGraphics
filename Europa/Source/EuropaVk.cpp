@@ -1739,11 +1739,23 @@ void EuropaDescriptorSetLayoutVk::DynamicUniformBuffer(uint32 binding, uint32 co
     m_bindings.push_back(layoutBinding);
 }
 
-void EuropaDescriptorSetLayoutVk::BufferView(uint32 binding, uint32 count, EuropaShaderStage stage)
+void EuropaDescriptorSetLayoutVk::BufferViewUniform(uint32 binding, uint32 count, EuropaShaderStage stage)
 {
     VkDescriptorSetLayoutBinding layoutBinding{};
     layoutBinding.binding = binding;
     layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+    layoutBinding.descriptorCount = count;
+    layoutBinding.stageFlags = VkShaderStageFlagBits(stage);
+    layoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    m_bindings.push_back(layoutBinding);
+}
+
+void EuropaDescriptorSetLayoutVk::BufferViewStorage(uint32 binding, uint32 count, EuropaShaderStage stage)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    layoutBinding.binding = binding;
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
     layoutBinding.descriptorCount = count;
     layoutBinding.stageFlags = VkShaderStageFlagBits(stage);
     layoutBinding.pImmutableSamplers = nullptr; // Optional
@@ -1826,7 +1838,7 @@ void EuropaDescriptorSetVk::SetUniformBufferDynamic(EuropaBuffer::Ref buffer, ui
     vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
 }
 
-void EuropaDescriptorSetVk::SetBufferView(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement)
+void EuropaDescriptorSetVk::SetBufferViewUniform(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement)
 {
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1835,6 +1847,24 @@ void EuropaDescriptorSetVk::SetBufferView(EuropaBufferView::Ref view, uint32 bin
     descriptorWrite.dstArrayElement = arrayElement;
 
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+
+    descriptorWrite.pBufferInfo = nullptr;
+    descriptorWrite.pImageInfo = nullptr;
+    descriptorWrite.pTexelBufferView = &(std::static_pointer_cast<EuropaBufferViewVk>(view)->m_view);
+
+    vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void EuropaDescriptorSetVk::SetBufferViewStorage(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement)
+{
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_set;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = arrayElement;
+
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
     descriptorWrite.descriptorCount = 1;
 
     descriptorWrite.pBufferInfo = nullptr;

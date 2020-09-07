@@ -556,7 +556,8 @@ public:
 	virtual void Clear() = 0;
 	virtual void UniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 	virtual void DynamicUniformBuffer(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
-	virtual void BufferView(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
+	virtual void BufferViewUniform(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
+	virtual void BufferViewStorage(uint32 binding, uint32 count, EuropaShaderStage stage) = 0;
 
 	virtual ~EuropaDescriptorSetLayout() {};
 };
@@ -688,7 +689,8 @@ public:
 
 	virtual void SetUniformBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
 	virtual void SetUniformBufferDynamic(EuropaBuffer::Ref buffer, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement) = 0;
-	virtual void SetBufferView(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement) = 0;
+	virtual void SetBufferViewUniform(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement) = 0;
+	virtual void SetBufferViewStorage(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement) = 0;
 
 	virtual ~EuropaDescriptorSet() {};
 };

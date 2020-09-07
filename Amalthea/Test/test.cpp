@@ -123,7 +123,7 @@ public:
 		EuropaBufferInfo lightBufferInfo;
 		lightBufferInfo.exclusive = true;
 		lightBufferInfo.size = uint32(lights.size() * sizeof(glm::vec4));
-		lightBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageUniformTexel | EuropaBufferUsageTransferDst);
+		lightBufferInfo.usage = EuropaBufferUsage(EuropaBufferUsageStorageTexel | EuropaBufferUsageTransferDst);
 		lightBufferInfo.memoryUsage = EuropaMemoryUsage::GpuOnly;
 		m_lightsBuffer = amalthea->m_device->CreateBuffer(lightBufferInfo);
 
@@ -244,7 +244,7 @@ public:
 
 		EuropaDescriptorSetLayout::Ref descLayout = amalthea->m_device->CreateDescriptorSetLayout();
 		descLayout->DynamicUniformBuffer(0, 1, EuropaShaderStageAllGraphics);
-		descLayout->BufferView(1, 1, EuropaShaderStageAllGraphics);
+		descLayout->BufferViewStorage(1, 1, EuropaShaderStageAllGraphics);
 		descLayout->Build();
 
 		m_pipelineLayout = amalthea->m_device->CreatePipelineLayout(EuropaPipelineLayoutInfo{ 1, 0, &descLayout });
@@ -295,7 +295,7 @@ public:
 		// Constants & Descriptor Pools / Sets
 		EuropaDescriptorPoolSizes descPoolSizes;
 		descPoolSizes.UniformDynamic = uint32(amalthea->m_frames.size());
-		descPoolSizes.UniformTexel = uint32(amalthea->m_frames.size());
+		descPoolSizes.StorageTexel = uint32(amalthea->m_frames.size());
 
 		m_descPool = amalthea->m_device->CreateDescriptorPool(descPoolSizes, uint32(amalthea->m_frames.size()));
 
@@ -338,7 +338,7 @@ public:
 		constantsHandle.Unmap();
 
 		m_descSets[ctx.frameIndex]->SetUniformBufferDynamic(constantsHandle.buffer, 0, constantsHandle.offset + m_constantsSize, 0, 0);
-		m_descSets[ctx.frameIndex]->SetBufferView(m_lightsBufferView, 1, 0);
+		m_descSets[ctx.frameIndex]->SetBufferViewStorage(m_lightsBufferView, 1, 0);
 
 		EuropaClearValue clearValue[2];
 		clearValue[0].color = glm::vec4(0.0, 0.0, 0.0, 1.0);
