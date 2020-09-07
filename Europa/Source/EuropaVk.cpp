@@ -570,7 +570,7 @@ EuropaDescriptorPool::Ref EuropaDeviceVk::CreateDescriptorPool(EuropaDescriptorP
     if (sizes.StorageImage)
     {
         VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         poolSize.descriptorCount = sizes.StorageImage;
         poolSizes.push_back(poolSize);
     }
