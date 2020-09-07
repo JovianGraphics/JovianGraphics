@@ -32,11 +32,11 @@ void HimaliaMesh::BuildMesh(void* v, size_t stride, uint32 numProperty, HimaliaV
                 if (!offsets) offset += sizeof(glm::vec4);
                 break;
             case HimaliaVertexProperty::Color8:
-                *(reinterpret_cast<glm::u8vec3*>((uint8*)(v) + stride * i + offset)) = glm::u8vec3(color[i] * 255);
+                *(reinterpret_cast<glm::u8vec3*>((uint8*)(v) + stride * i + offset)) = glm::u8vec3(color[i] * 255.0f);
                 if (!offsets) offset += sizeof(glm::u8vec3);
                 break;
             case HimaliaVertexProperty::ColorRGBA8:
-                *(reinterpret_cast<glm::u8vec4*>((uint8*)(v) + stride * i + offset)) = glm::u8vec4(color[i] * 255);
+                *(reinterpret_cast<glm::u8vec4*>((uint8*)(v) + stride * i + offset)) = glm::u8vec4(color[i] * 255.0f);
                 if (!offsets) offset += sizeof(glm::u8vec4);
                 break;
             case HimaliaVertexProperty::UV:
