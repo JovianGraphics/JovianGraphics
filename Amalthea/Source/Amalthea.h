@@ -54,6 +54,7 @@ public:
     EuropaSurface::Ref m_surface = nullptr;
 
     std::vector<EuropaQueueFamilyProperties> m_queueFamilies;
+    EuropaQueueFamilyProperties m_selectedQueueFamily;
     EuropaQueue::Ref m_cmdQueue = nullptr;
 
     EuropaSwapChain::Ref m_swapChain = nullptr;

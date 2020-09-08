@@ -311,13 +311,13 @@ void EuropaDeviceVk::CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFam
     vmaCreateAllocator(&vmaCreateInfo, &m_allocator);
 }
 
-EuropaQueue::Ref EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue)
+EuropaQueue::Ref EuropaDeviceVk::GetQueue(EuropaQueueFamilyProperties& queue, uint32 queueIndex)
 {
     EuropaQueueVk::Ref vkQueue = std::make_shared<EuropaQueueVk>();
     vkQueue->m_property = queue;
     vkQueue->m_device = shared_from_this();
     
-    vkGetDeviceQueue(m_device, queue.queueIndex, 0, &vkQueue->m_queue);
+    vkGetDeviceQueue(m_device, queue.queueIndex, queueIndex, &vkQueue->m_queue);
 
     return vkQueue;
 }
@@ -684,7 +684,7 @@ EuropaRenderPass::Ref EuropaDeviceVk::CreateRenderPassBuilder()
     return rp;
 }
 
-EuropaGraphicsPipeline::Ref EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args)
+EuropaPipeline::Ref EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args)
 {
     VkGraphicsPipelineCreateInfo pipelineInfo{};
 
@@ -793,15 +793,22 @@ EuropaGraphicsPipeline::Ref EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphic
     multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
     // FIXME: Support blending
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+    for (uint32 i = 0; i < args.blendingAttachmentCount; i++)
+    {
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = args.blendingAttachements ? args.blendingAttachements[i] : VK_FALSE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // Optional
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+
+        colorBlendAttachments.push_back(colorBlendAttachment);
+    }
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -818,8 +825,8 @@ EuropaGraphicsPipeline::Ref EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphic
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.attachmentCount = args.blendingAttachmentCount;
+    colorBlending.pAttachments = colorBlendAttachments.data();
     colorBlending.blendConstants[0] = 0.0f; // Optional
     colorBlending.blendConstants[1] = 0.0f; // Optional
     colorBlending.blendConstants[2] = 0.0f; // Optional
@@ -842,10 +849,30 @@ EuropaGraphicsPipeline::Ref EuropaDeviceVk::CreateGraphicsPipeline(EuropaGraphic
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional
 
-    EuropaGraphicsPipelineVk::Ref pipeline = std::make_shared<EuropaGraphicsPipelineVk>();
+    EuropaPipelineVk::Ref pipeline = std::make_shared<EuropaPipelineVk>();
     pipeline->m_device = shared_from_this();
 
     if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline->m_pipeline) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create graphics pipeline!");
+    }
+
+    return pipeline;
+}
+
+EuropaPipeline::Ref EuropaDeviceVk::CreateComputePipeline(EuropaShaderStageInfo& stage, EuropaPipelineLayout::Ref layout)
+{
+    VkComputePipelineCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    info.stage.stage = VkShaderStageFlagBits(stage.stage);
+    info.stage.module = std::static_pointer_cast<EuropaShaderModuleVk>(stage.module)->m_shaderModule;
+    info.stage.pName = stage.entryPoint;
+    info.layout = std::static_pointer_cast<EuropaPipelineLayoutVk>(layout)->m_layout;
+
+    EuropaPipelineVk::Ref pipeline = std::make_shared<EuropaPipelineVk>();
+    pipeline->m_device = shared_from_this();
+
+    if (vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline->m_pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 
@@ -1313,6 +1340,10 @@ uint32 EuropaRenderPassVk::AddAttachment(EuropaAttachmentInfo& attachment)
 uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::vector<EuropaAttachmentReference>& attachments, EuropaAttachmentReference* depthAttachment)
 {
     size_t head = attachmentReferences.size();
+    size_t inputHead = inputAttachmentReferences.size();
+
+    uint32 numAttachment = 0;
+    uint32 numInputAttachment = 0;
 
     for (EuropaAttachmentReference& attachment : attachments)
     {
@@ -1321,18 +1352,30 @@ uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::ve
         ref.attachment = attachment.attachment;
         ref.layout = VkImageLayout(attachment.layout);
 
-        attachmentReferences.push_back(ref);
+        if (attachment.input)
+        {
+            inputAttachmentReferences.push_back(ref);
+            numInputAttachment++;
+        }
+        else
+        {
+            attachmentReferences.push_back(ref);
+            numAttachment++;
+        }
     }
 
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VkPipelineBindPoint(bindPoint);
-    subpass.colorAttachmentCount = uint32(attachments.size());
-    subpass.pColorAttachments = &attachmentReferences[head];
+    subpass.colorAttachmentCount = numAttachment;
+    subpass.inputAttachmentCount = numInputAttachment;
 
+    subpassAttachmentRefIndex.push_back(head);
+    subpassInputAttachmentRefIndex.push_back(inputHead);
+
+    size_t depthHead = depthAttachmentReferences.size();
+    
     if (depthAttachment)
     {
-        size_t depthHead = depthAttachmentReferences.size();
-
         VkAttachmentReference ref{};
 
         ref.attachment = depthAttachment->attachment;
@@ -1340,8 +1383,10 @@ uint32 EuropaRenderPassVk::AddSubpass(EuropaPipelineBindPoint bindPoint, std::ve
 
         depthAttachmentReferences.push_back(ref);
 
-        subpass.pDepthStencilAttachment = &depthAttachmentReferences[depthHead];
+        subpass.pDepthStencilAttachment = depthAttachmentReferences.data();
     }
+
+    subpassDepthAttachmentRefIndex.push_back(depthHead);
 
     subpasses.push_back(subpass);
 
@@ -1363,6 +1408,16 @@ void EuropaRenderPassVk::AddDependency(uint32 srcPass, uint32 dstPass, EuropaPip
 
 void EuropaRenderPassVk::CreateRenderpass()
 {
+    uint32 i = 0;
+    for (VkSubpassDescription& subpass : subpasses)
+    {
+        subpass.pColorAttachments = subpass.colorAttachmentCount ? &attachmentReferences[subpassAttachmentRefIndex[i]] : nullptr;
+        subpass.pInputAttachments = subpass.inputAttachmentCount ? &inputAttachmentReferences[subpassInputAttachmentRefIndex[i]] : nullptr;
+        subpass.pDepthStencilAttachment = subpass.pDepthStencilAttachment ? &depthAttachmentReferences[subpassDepthAttachmentRefIndex[i]] : nullptr;
+
+        i++;
+    }
+
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = uint32(attachments.size());
@@ -1382,7 +1437,7 @@ EuropaRenderPassVk::~EuropaRenderPassVk()
     vkDestroyRenderPass(m_device->m_device, m_renderPass, nullptr);
 }
 
-EuropaGraphicsPipelineVk::~EuropaGraphicsPipelineVk()
+EuropaPipelineVk::~EuropaPipelineVk()
 {
     vkDestroyPipeline(m_device->m_device, m_pipeline, nullptr);
 }
@@ -1478,9 +1533,14 @@ void EuropaCmdlistVk::EndRenderpass()
     vkCmdEndRenderPass(m_cmdlist);
 }
 
-void EuropaCmdlistVk::BindPipeline(EuropaGraphicsPipeline::Ref pipeline)
+void EuropaCmdlistVk::BindPipeline(EuropaPipeline::Ref pipeline)
 {
-    vkCmdBindPipeline(m_cmdlist, VK_PIPELINE_BIND_POINT_GRAPHICS, std::static_pointer_cast<EuropaGraphicsPipelineVk>(pipeline)->m_pipeline);
+    vkCmdBindPipeline(m_cmdlist, VK_PIPELINE_BIND_POINT_GRAPHICS, std::static_pointer_cast<EuropaPipelineVk>(pipeline)->m_pipeline);
+}
+
+void EuropaCmdlistVk::BindCompute(EuropaPipeline::Ref pipeline)
+{
+    vkCmdBindPipeline(m_cmdlist, VK_PIPELINE_BIND_POINT_COMPUTE, std::static_pointer_cast<EuropaPipelineVk>(pipeline)->m_pipeline);
 }
 
 void EuropaCmdlistVk::DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance)
@@ -1491,6 +1551,11 @@ void EuropaCmdlistVk::DrawInstanced(uint32 vertexCount, uint32 instanceCount, ui
 void EuropaCmdlistVk::DrawIndexed(uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 firstVertex, uint32 firstInstance)
 {
     vkCmdDrawIndexed(m_cmdlist, indexCount, instanceCount, firstIndex, firstVertex, firstInstance);
+}
+
+void EuropaCmdlistVk::Dispatch(uint32 x, uint32 y, uint32 z)
+{
+    vkCmdDispatch(m_cmdlist, x, y, z);
 }
 
 void EuropaCmdlistVk::BindVertexBuffer(EuropaBuffer::Ref _buffer, uint32 offset, uint32 binding)
@@ -1579,6 +1644,11 @@ void EuropaCmdlistVk::ClearImage(EuropaImage::Ref image, EuropaImageLayout layou
     v.float32[3] = color.a;
 
     vkCmdClearColorImage(m_cmdlist, std::static_pointer_cast<EuropaImageVk>(image)->m_image, VkImageLayout(layout), &v, 1, &range);
+}
+
+void EuropaCmdlistVk::NextSubpass()
+{
+    vkCmdNextSubpass(m_cmdlist, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 EuropaSemaphoreVk::~EuropaSemaphoreVk()
@@ -1806,6 +1876,18 @@ void EuropaDescriptorSetLayoutVk::Storage(uint32 binding, uint32 count, EuropaSh
     m_bindings.push_back(layoutBinding);
 }
 
+void EuropaDescriptorSetLayoutVk::InputAttachment(uint32 binding, uint32 count, EuropaShaderStage stage)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    layoutBinding.binding = binding;
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    layoutBinding.descriptorCount = count;
+    layoutBinding.stageFlags = VkShaderStageFlagBits(stage);
+    layoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    m_bindings.push_back(layoutBinding);
+}
+
 EuropaDescriptorSetLayoutVk::~EuropaDescriptorSetLayoutVk()
 {
     Clear();
@@ -1958,6 +2040,28 @@ void EuropaDescriptorSetVk::SetStorage(EuropaBuffer::Ref buffer, uint32 offset, 
     descriptorWrite.pBufferInfo = &bufferInfo;
     descriptorWrite.pImageInfo = nullptr; // Optional
     descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+    vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void EuropaDescriptorSetVk::SetInputAttachment(EuropaImageView::Ref view, EuropaImageLayout layout, uint32 binding, uint32 arrayElement)
+{
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageView = std::static_pointer_cast<EuropaImageViewVk>(view)->m_view;
+    imageInfo.imageLayout = VkImageLayout(layout);
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_set;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = arrayElement;
+
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    descriptorWrite.descriptorCount = 1;
+
+    descriptorWrite.pBufferInfo = nullptr;
+    descriptorWrite.pImageInfo = &imageInfo;
+    descriptorWrite.pTexelBufferView = nullptr;
 
     vkUpdateDescriptorSets(m_device->m_device, 1, &descriptorWrite, 0, nullptr);
 }

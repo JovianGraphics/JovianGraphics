@@ -38,6 +38,14 @@ if File.extname(shader_file_name) == '.vert'
   compiler_options += "-DVERTEX"
 end
 
+if File.extname(shader_file_name) == '.vert'
+  compiler_options += "-DVERTEX"
+end
+
+if File.extname(shader_file_name) == '.comp'
+  compiler_options += "-DCOMPUTE"
+end
+
 require 'open3'
 
 spv_struct, err, status = Open3.capture3("glslc -mfmt=c \"#{shader_file_name}\" --target-env=vulkan -O " + compiler_options + " -o -")

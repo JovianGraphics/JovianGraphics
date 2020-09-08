@@ -135,7 +135,6 @@ LRESULT IoSurfaceWin32::WindowCallbacks(UINT uMsg, WPARAM wParam, LPARAM lParam)
         this->keyCallback(uint8(wParam), uint16(wParam), "", IoKeyboardEvent::CharacterInput);
         break;
     case WM_MOUSEMOVE:
-        GanymedePrint "Mouse moved", GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam);
         break;
     }
 

@@ -39,7 +39,7 @@ struct EuropaBufferInfo;
 class EuropaBuffer;
 class EuropaBufferView;
 struct EuropaGraphicsPipelineCreateInfo;
-class EuropaGraphicsPipeline;
+class EuropaPipeline;
 struct EuropaFramebufferCreateInfo;
 class EuropaFramebuffer;
 class EuropaDescriptorSet;

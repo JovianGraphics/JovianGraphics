@@ -43,7 +43,7 @@ public:
 	std::string GetName();
 	std::vector<EuropaQueueFamilyProperties> GetQueueFamilies(EuropaSurface::Ref surface);
 	void CreateLogicalDevice(uint32 queueFamilyCount, EuropaQueueFamilyProperties* queues, uint32* queueCount);
-	EuropaQueue::Ref GetQueue(EuropaQueueFamilyProperties& queue);
+	EuropaQueue::Ref GetQueue(EuropaQueueFamilyProperties& queue, uint32 queueIndex = 0);
 	EuropaSwapChainCapabilities getSwapChainCapabilities(EuropaSurface::Ref surface);
 	EuropaSwapChain::Ref CreateSwapChain(EuropaSwapChainCreateInfo& args);
 	std::vector<EuropaImage::Ref> GetSwapChainImages(EuropaSwapChain::Ref swapChain);
@@ -55,7 +55,8 @@ public:
 	EuropaDescriptorPool::Ref CreateDescriptorPool(EuropaDescriptorPoolSizes& sizes, uint32 maxSets);
 	EuropaPipelineLayout::Ref CreatePipelineLayout(EuropaPipelineLayoutInfo& args);
 	EuropaRenderPass::Ref CreateRenderPassBuilder();
-	EuropaGraphicsPipeline::Ref CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args);
+	EuropaPipeline::Ref CreateGraphicsPipeline(EuropaGraphicsPipelineCreateInfo& args);
+	EuropaPipeline::Ref CreateComputePipeline(EuropaShaderStageInfo& stage, EuropaPipelineLayout::Ref layout);
 	EuropaCommandPool::Ref CreateCommandPool(EuropaQueue::Ref queue);
 	EuropaSemaphore::Ref CreateSema();
 	EuropaFence::Ref CreateFence(bool createSignaled = false);
@@ -202,6 +203,7 @@ public:
 	void SetBufferViewStorage(EuropaBufferView::Ref view, uint32 binding, uint32 arrayElement);
 	void SetImageViewStorage(EuropaImageView::Ref view, EuropaImageLayout layout, uint32 binding, uint32 arrayElement);
 	void SetStorage(EuropaBuffer::Ref view, uint32 offset, uint32 size, uint32 binding, uint32 arrayElement);
+	void SetInputAttachment(EuropaImageView::Ref view, EuropaImageLayout layout, uint32 binding, uint32 arrayElement);
 
 	EuropaDescriptorSetVk() : SHARE(EuropaDescriptorSetVk)() {}
 	~EuropaDescriptorSetVk() {};
@@ -248,9 +250,11 @@ public:
 	void End();
 	void BeginRenderpass(EuropaRenderPass::Ref renderpass, EuropaFramebuffer::Ref framebuffer, glm::ivec2 offset, glm::uvec2 extent, uint32 clearValueCount, EuropaClearValue* clearColor);
 	void EndRenderpass();
-	void BindPipeline(EuropaGraphicsPipeline::Ref pipeline);
+	void BindPipeline(EuropaPipeline::Ref pipeline);
+	void BindCompute(EuropaPipeline::Ref pipeline);
 	void DrawInstanced(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance);
 	void DrawIndexed(uint32 indexCount, uint32 instanceCount, uint32 firstIndex, uint32 firstVertex, uint32 firstInstance);
+	void Dispatch(uint32 x, uint32 y, uint32 z);
 	void BindVertexBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 binding);
 	void BindIndexBuffer(EuropaBuffer::Ref buffer, uint32 offset, EuropaImageFormat indexFormat);
 	void CopyBuffer(EuropaBuffer::Ref dst, EuropaBuffer::Ref src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0);
@@ -263,6 +267,7 @@ public:
 		EuropaPipelineStage beforeStage = EuropaPipelineStageAllCommands, EuropaPipelineStage afterStage = EuropaPipelineStageAllCommands,
 		EuropaQueue::Ref srcQueue = nullptr, EuropaQueue::Ref dstQueue = nullptr);
 	void ClearImage(EuropaImage::Ref image, EuropaImageLayout layout, glm::vec4 color, uint32 baseMipLevel = 0, uint32 baseArrayLayer = 0, uint32 numMipLevls = 1, uint32 numArrayLayers = 1);
+	void NextSubpass();
 
 	EuropaCmdlistVk() : SHARE(EuropaCmdlistVk)() {}
 	~EuropaCmdlistVk() {};
@@ -310,6 +315,7 @@ public:
 	void BufferViewStorage(uint32 binding, uint32 count, EuropaShaderStage stage);
 	void ImageViewStorage(uint32 binding, uint32 count, EuropaShaderStage stage);
 	void Storage(uint32 binding, uint32 count, EuropaShaderStage stage);
+	void InputAttachment(uint32 binding, uint32 count, EuropaShaderStage stage);
 
 	EuropaDescriptorSetLayoutVk() : SHARE(EuropaDescriptorSetLayoutVk)() {}
 	~EuropaDescriptorSetLayoutVk();
@@ -332,8 +338,12 @@ class EuropaRenderPassVk : public EuropaRenderPass, public SHARE(EuropaRenderPas
 private:
 	std::vector<VkAttachmentDescription> attachments;
 	std::vector<VkAttachmentReference> attachmentReferences;
+	std::vector<VkAttachmentReference> inputAttachmentReferences;
 	std::vector<VkAttachmentReference> depthAttachmentReferences;
 	std::vector<VkSubpassDescription> subpasses;
+	std::vector<uint32> subpassAttachmentRefIndex;
+	std::vector<uint32> subpassDepthAttachmentRefIndex;
+	std::vector<uint32> subpassInputAttachmentRefIndex;
 	std::vector<VkSubpassDependency> dependencies;
 
 public:
@@ -351,16 +361,16 @@ public:
 	~EuropaRenderPassVk();
 };
 
-class EuropaGraphicsPipelineVk : public EuropaGraphicsPipeline, public SHARE(EuropaGraphicsPipelineVk)
+class EuropaPipelineVk : public EuropaPipeline, public SHARE(EuropaPipelineVk)
 {
 public:
-	DECL_REF(EuropaGraphicsPipelineVk)
+	DECL_REF(EuropaPipelineVk)
 
 	EuropaDeviceVk::Ref m_device;
 	VkPipeline m_pipeline;
 
-	EuropaGraphicsPipelineVk() : SHARE(EuropaGraphicsPipelineVk)() {}
-	virtual ~EuropaGraphicsPipelineVk();
+	EuropaPipelineVk() : SHARE(EuropaPipelineVk)() {}
+	virtual ~EuropaPipelineVk();
 };
 
 class EuropaVk : public Europa, public SHARE(EuropaVk)

@@ -58,7 +58,7 @@ public:
 	EuropaRenderPass::Ref m_mainRenderPass;
 
 	EuropaDescriptorPool::Ref m_descPool;
-	EuropaGraphicsPipeline::Ref m_pipeline;
+	EuropaPipeline::Ref m_pipeline;
 	EuropaPipelineLayout::Ref m_pipelineLayout;
 
 	std::vector<EuropaDescriptorSet::Ref> m_descSets;

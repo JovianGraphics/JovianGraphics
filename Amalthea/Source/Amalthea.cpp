@@ -63,9 +63,11 @@ void Amalthea::CreateDevice()
 
 	if (requiredQueues[0].queueIndex == requiredQueues[1].queueIndex)
 	{
-		uint32_t queueCount[] = { 1 };
-		m_device->CreateLogicalDevice(1, requiredQueues, queueCount);
+		std::vector<uint32> queueCount;
+		queueCount.resize(m_queueFamilies.size(), 1);
+		m_device->CreateLogicalDevice(m_queueFamilies.size(), m_queueFamilies.data(), queueCount.data());
 
+		m_selectedQueueFamily = requiredQueues[0];
 		m_cmdQueue = m_device->GetQueue(requiredQueues[0]);
 	}
 	else
@@ -112,7 +114,7 @@ void Amalthea::CreateSwapChain()
 	swapChainCreateInfo.format = EuropaImageFormat::BGRA8sRGB;
 	swapChainCreateInfo.imageCount = 3;
 	swapChainCreateInfo.numLayers = 1;
-	swapChainCreateInfo.presentMode = EuropaPresentMode::Mailbox;
+	swapChainCreateInfo.presentMode = EuropaPresentMode::FIFORelaxed;
 	swapChainCreateInfo.surface = m_surface;
 	swapChainCreateInfo.surfaceTransform = m_swapChainCaps.surfaceCaps.currentTransform;
 

@@ -188,7 +188,7 @@ int AppMain(IoSurface::Ref s)
 	pipelineDesc.renderpass = renderpass;
 	pipelineDesc.targetSubpass = forwardPass;
 
-	EuropaGraphicsPipeline::Ref pipeline = selectedDevice->CreateGraphicsPipeline(pipelineDesc);
+	EuropaPipeline::Ref pipeline = selectedDevice->CreateGraphicsPipeline(pipelineDesc);
 
 	// Create Command Pools and Command Lists
 	EuropaCommandPool::Ref cmdpool = selectedDevice->CreateCommandPool(cmdQueue);
