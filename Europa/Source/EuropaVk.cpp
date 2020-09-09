@@ -1628,6 +1628,31 @@ void EuropaCmdlistVk::Barrier(
     vkCmdPipelineBarrier(m_cmdlist, VkPipelineStageFlagBits(beforeStage), VkPipelineStageFlagBits(afterStage), 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
+void EuropaCmdlistVk::Barrier(
+    EuropaBuffer::Ref _buffer, uint32 size, uint32 offset,
+    EuropaAccess beforeAccess, EuropaAccess afterAccess,
+    EuropaPipelineStage beforeStage, EuropaPipelineStage afterStage,
+    EuropaQueue::Ref _srcQueue, EuropaQueue::Ref _dstQueue)
+{
+    EuropaBufferVk::Ref buffer = std::static_pointer_cast<EuropaBufferVk>(_buffer);
+    EuropaQueueVk::Ref srcQueue = std::static_pointer_cast<EuropaQueueVk>(_srcQueue);
+    EuropaQueueVk::Ref dstQueue = std::static_pointer_cast<EuropaQueueVk>(_dstQueue);
+
+    VkBufferMemoryBarrier barrier{};
+
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.srcAccessMask = VkAccessFlagBits(beforeAccess);
+    barrier.dstAccessMask = VkAccessFlagBits(afterAccess);
+    barrier.buffer = buffer->m_buffer;
+    barrier.size = size;
+    barrier.offset = offset;
+
+    if (srcQueue) barrier.srcQueueFamilyIndex = srcQueue->m_property.queueIndex;
+    if (dstQueue) barrier.dstQueueFamilyIndex = dstQueue->m_property.queueIndex;
+
+    vkCmdPipelineBarrier(m_cmdlist, VkPipelineStageFlagBits(beforeStage), VkPipelineStageFlagBits(afterStage), 0, 0, nullptr, 1, &barrier, 0, nullptr);
+}
+
 void EuropaCmdlistVk::ClearImage(EuropaImage::Ref image, EuropaImageLayout layout, glm::vec4 color, uint32 baseMipLevel, uint32 baseArrayLayer, uint32 numMipLevls, uint32 numArrayLayers)
 {
     VkImageSubresourceRange range{};

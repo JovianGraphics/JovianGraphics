@@ -266,6 +266,11 @@ public:
 		EuropaImageLayout beforeLayout, EuropaImageLayout afterLayout,
 		EuropaPipelineStage beforeStage = EuropaPipelineStageAllCommands, EuropaPipelineStage afterStage = EuropaPipelineStageAllCommands,
 		EuropaQueue::Ref srcQueue = nullptr, EuropaQueue::Ref dstQueue = nullptr);
+	void Barrier(
+		EuropaBuffer::Ref buffer, uint32 size, uint32 offset,
+		EuropaAccess beforeAccess, EuropaAccess afterAccess,
+		EuropaPipelineStage beforeStage = EuropaPipelineStageAllCommands, EuropaPipelineStage afterStage = EuropaPipelineStageAllCommands,
+		EuropaQueue::Ref srcQueue = nullptr, EuropaQueue::Ref dstQueue = nullptr);
 	void ClearImage(EuropaImage::Ref image, EuropaImageLayout layout, glm::vec4 color, uint32 baseMipLevel = 0, uint32 baseArrayLayer = 0, uint32 numMipLevls = 1, uint32 numArrayLayers = 1);
 	void NextSubpass();
 
