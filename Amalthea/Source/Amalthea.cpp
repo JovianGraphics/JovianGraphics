@@ -114,7 +114,7 @@ void Amalthea::CreateSwapChain()
 	swapChainCreateInfo.format = EuropaImageFormat::BGRA8sRGB;
 	swapChainCreateInfo.imageCount = 3;
 	swapChainCreateInfo.numLayers = 1;
-	swapChainCreateInfo.presentMode = EuropaPresentMode::FIFORelaxed;
+	swapChainCreateInfo.presentMode = EuropaPresentMode::Mailbox;
 	swapChainCreateInfo.surface = m_surface;
 	swapChainCreateInfo.surfaceTransform = m_swapChainCaps.surfaceCaps.currentTransform;
 
