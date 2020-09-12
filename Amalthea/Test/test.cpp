@@ -242,8 +242,8 @@ public:
 		attributes[6].offset = sizeof(glm::vec4) * 3;
 		attributes[6].format = EuropaImageFormat::RGBA32F;
 
-		EuropaShaderModule::Ref shaderFragment = amalthea->m_device->CreateShaderModule(shader_spv_unlit_frag, sizeof(shader_spv_unlit_frag));
-		EuropaShaderModule::Ref shaderVertex = amalthea->m_device->CreateShaderModule(shader_spv_unlit_vert, sizeof(shader_spv_unlit_vert));
+		EuropaShaderModule::Ref shaderFragment = amalthea->m_device->CreateShaderModule(shader_spv_unlit_frag_h, sizeof(shader_spv_unlit_frag_h));
+		EuropaShaderModule::Ref shaderVertex = amalthea->m_device->CreateShaderModule(shader_spv_unlit_vert_h, sizeof(shader_spv_unlit_vert_h));
 
 		EuropaDescriptorSetLayout::Ref descLayout = amalthea->m_device->CreateDescriptorSetLayout();
 		descLayout->DynamicUniformBuffer(0, 1, EuropaShaderStageAllGraphics);

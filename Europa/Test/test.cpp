@@ -156,8 +156,8 @@ int AppMain(IoSurface::Ref s)
 	attributes[1].offset = offsetof(Vertex, Vertex::color);
 	attributes[1].format = EuropaImageFormat::RGB32F;
 
-	EuropaShaderModule::Ref shaderFragment = selectedDevice->CreateShaderModule(shader_spv_triangle_frag, sizeof(shader_spv_triangle_frag));
-	EuropaShaderModule::Ref shaderVertex = selectedDevice->CreateShaderModule(shader_spv_triangle_vert, sizeof(shader_spv_triangle_vert));
+	EuropaShaderModule::Ref shaderFragment = selectedDevice->CreateShaderModule(shader_spv_triangle_frag_h, sizeof(shader_spv_triangle_frag_h));
+	EuropaShaderModule::Ref shaderVertex = selectedDevice->CreateShaderModule(shader_spv_triangle_vert_h, sizeof(shader_spv_triangle_vert_h));
 
 	EuropaDescriptorSetLayout::Ref descLayout = selectedDevice->CreateDescriptorSetLayout();
 	descLayout->UniformBuffer(0, 1, EuropaShaderStageAllGraphics);

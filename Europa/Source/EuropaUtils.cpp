@@ -4,13 +4,12 @@ void EuropaTransferUtil::UploadToBufferEx(EuropaBuffer::Ref target, uint8* src, 
 {
     uint32 offset = 0;
 
+    uint8* mappedBuffer = m_bufferCpu2Gpu->Map<uint8>();
     while (offset < size)
     {
         uint32 chunkSize = size - offset > m_stagingBufferSize ? m_stagingBufferSize : size - offset;
 
-        uint8* mappedBuffer = m_bufferCpu2Gpu->Map<uint8>();
-        memcpy(mappedBuffer, src + offset, size);
-        m_bufferCpu2Gpu->Unmap();
+        memcpy(mappedBuffer, src + offset, glm::min(m_stagingBufferSize, size - offset));
 
         m_cmdlist->Begin();
         m_cmdlist->CopyBuffer(target, m_bufferCpu2Gpu, chunkSize, 0, offset);
@@ -21,6 +20,7 @@ void EuropaTransferUtil::UploadToBufferEx(EuropaBuffer::Ref target, uint8* src, 
 
         offset += m_stagingBufferSize;
     }
+    m_bufferCpu2Gpu->Unmap();
 }
 
 void EuropaTransferUtil::NewFrame()

@@ -5,9 +5,13 @@
 shader_file_name = ""
 output_file_name = ""
 
+macros = []
+
 for arg in ARGV
   if arg[0..6] == "output="
     output_file_name = arg[7..-1]
+  elsif arg[0..6] == "define="
+    macros.push(arg[7..-1])
   else
     shader_file_name = arg
   end
@@ -46,6 +50,10 @@ if File.extname(shader_file_name) == '.comp'
   compiler_options += "-DCOMPUTE"
 end
 
+macros.each do |d|
+  compiler_options += " -D" + d + " "
+end
+
 require 'open3'
 
 spv_struct, err, status = Open3.capture3("glslc -mfmt=c \"#{shader_file_name}\" --target-env=vulkan -O " + compiler_options + " -o -")
@@ -70,7 +78,7 @@ end
 
 headers_file += "\n\n"
 
-headers_file += "static const uint32 shader_spv_" + File.basename(shader_file_name).gsub('.', '_') + "[] = \n"
+headers_file += "static const uint32 shader_spv_" + File.basename(output_file_name).gsub('.', '_') + "[] = \n"
 headers_file += spv_struct
 headers_file += ";"
 
