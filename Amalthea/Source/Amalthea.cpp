@@ -64,11 +64,12 @@ void Amalthea::CreateDevice()
 	if (requiredQueues[0].queueIndex == requiredQueues[1].queueIndex)
 	{
 		std::vector<uint32> queueCount;
-		queueCount.resize(m_queueFamilies.size(), 1);
+		queueCount.resize(m_queueFamilies.size(), 2);
 		m_device->CreateLogicalDevice(m_queueFamilies.size(), m_queueFamilies.data(), queueCount.data());
 
 		m_selectedQueueFamily = requiredQueues[0];
-		m_cmdQueue = m_device->GetQueue(requiredQueues[0]);
+		m_cmdQueue = m_device->GetQueue(requiredQueues[0], 0);
+		m_transferQueue = m_device->GetQueue(requiredQueues[0], 1);
 	}
 	else
 	{
@@ -77,10 +78,11 @@ void Amalthea::CreateDevice()
 
 	// Create command pool & command lists
 	m_cmdpool = m_device->CreateCommandPool(m_cmdQueue);
+	m_transferCmdpool = m_device->CreateCommandPool(m_transferQueue);
 
 	// Create Utils
-	m_copyCmdlist = m_cmdpool->AllocateCommandBuffers(0, 1)[0];
-	m_transferUtil = new EuropaTransferUtil(m_device, m_cmdQueue, m_copyCmdlist, 128 << 20); // 128M
+	m_copyCmdlist = m_transferCmdpool->AllocateCommandBuffers(0, 1)[0];
+	m_transferUtil = new EuropaTransferUtil(m_device, m_transferQueue, m_copyCmdlist, 128 << 20); // 128M
 	m_streamingBuffer = new EuropaStreamingBuffer(m_device, MAX_FRAMES_IN_FLIGHT);
 	m_imgui = new EuropaImGui(m_europa, EuropaImageFormat::BGRA8sRGB, m_device, m_cmdQueue, m_surface, m_ioSurface);
 

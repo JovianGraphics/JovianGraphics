@@ -56,11 +56,13 @@ public:
     std::vector<EuropaQueueFamilyProperties> m_queueFamilies;
     EuropaQueueFamilyProperties m_selectedQueueFamily;
     EuropaQueue::Ref m_cmdQueue = nullptr;
+    EuropaQueue::Ref m_transferQueue = nullptr;
 
     EuropaSwapChain::Ref m_swapChain = nullptr;
     EuropaSwapChainCapabilities m_swapChainCaps;
 
     EuropaCommandPool::Ref m_cmdpool;
+    EuropaCommandPool::Ref m_transferCmdpool;
 
     std::vector<EuropaSemaphore::Ref> m_imageAvailableSemaphore;
     std::vector<EuropaSemaphore::Ref> m_renderFinishedSemaphore;
