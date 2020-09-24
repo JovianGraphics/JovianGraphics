@@ -258,6 +258,7 @@ public:
 	void BindVertexBuffer(EuropaBuffer::Ref buffer, uint32 offset, uint32 binding);
 	void BindIndexBuffer(EuropaBuffer::Ref buffer, uint32 offset, EuropaImageFormat indexFormat);
 	void CopyBuffer(EuropaBuffer::Ref dst, EuropaBuffer::Ref src, uint32 size, uint32 srcOffset = 0, uint32 dstOffset = 0);
+	void CopyImageToBuffer(EuropaBuffer::Ref dst, EuropaImage::Ref src, EuropaImageLayout layout, uint32 dstOffset, uint32 rowLength, uint32 height, glm::uvec3 offset, glm::uvec3 size, uint32 mipLevel);
 	void BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0);
 	void BindDescriptorSetsDynamicOffsets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set = 0, uint32 offset = 0);
 	void Barrier(

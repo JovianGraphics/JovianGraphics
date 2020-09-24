@@ -1587,6 +1587,29 @@ void EuropaCmdlistVk::CopyBuffer(EuropaBuffer::Ref _dst, EuropaBuffer::Ref _src,
     vkCmdCopyBuffer(m_cmdlist, src->m_buffer, dst->m_buffer, 1, &copy);
 }
 
+void EuropaCmdlistVk::CopyImageToBuffer(EuropaBuffer::Ref _dst, EuropaImage::Ref _src, EuropaImageLayout layout, uint32 dstOffset, uint32 rowLength, uint32 height, glm::uvec3 offset, glm::uvec3 size, uint32 mipLevel)
+{
+    EuropaBufferVk::Ref dst = std::static_pointer_cast<EuropaBufferVk>(_dst);
+    EuropaImageVk::Ref src = std::static_pointer_cast<EuropaImageVk>(_src);
+
+    VkBufferImageCopy copy{};
+    copy.bufferOffset = dstOffset;
+    copy.bufferRowLength = rowLength;
+    copy.bufferImageHeight = height;
+    copy.imageOffset.x = offset.x;
+    copy.imageOffset.y = offset.y;
+    copy.imageOffset.z = offset.z;
+    copy.imageExtent.width = size.x;
+    copy.imageExtent.height = size.y;
+    copy.imageExtent.depth = size.z;
+    copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.imageSubresource.baseArrayLayer = 0;
+    copy.imageSubresource.layerCount = 1;
+    copy.imageSubresource.mipLevel = mipLevel;
+
+    vkCmdCopyImageToBuffer(m_cmdlist, src->m_image, VkImageLayout(layout), dst->m_buffer, 1, &copy);
+}
+
 void EuropaCmdlistVk::BindDescriptorSets(EuropaPipelineBindPoint bindPoint, EuropaPipelineLayout::Ref layout, EuropaDescriptorSet::Ref descSet, uint32 set)
 {
     vkCmdBindDescriptorSets(m_cmdlist, VkPipelineBindPoint(bindPoint), std::static_pointer_cast<EuropaPipelineLayoutVk>(layout)->m_layout, set, 1, &std::static_pointer_cast<EuropaDescriptorSetVk>(descSet)->m_set, 0, 0);

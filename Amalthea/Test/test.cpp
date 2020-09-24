@@ -371,7 +371,7 @@ public:
 			ImPlot::SetNextPlotLimitsY(0.0, 160.0, ImGuiCond_Once, 1);
 			// ImPlot::FitNextPlotAxes(false, true, true, false);
 			// ImPlot::FitNextPlotAxes(false, true, true, false);
-			if (ImPlot::BeginPlot("Performance", "Time", nullptr, ImVec2(-1, 0), ImPlotFlags_Default | ImPlotFlags_YAxis2)) {
+			if (ImPlot::BeginPlot("Performance", "Time", nullptr, ImVec2(-1, 0), ImPlotFlags_YAxis2)) {
 				ImPlot::SetPlotYAxis(0);
 				ImPlot::PlotLine("FrameTime", m_frameTimeLog.GetDataX(), m_frameTimeLog.GetDataY(), m_frameTimeLog.GetSize(), m_frameTimeLog.GetOffset());
 				ImPlot::SetPlotYAxis(1);

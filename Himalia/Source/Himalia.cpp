@@ -92,7 +92,7 @@ GANYMEDE_ENUM(HimaliaPlyDataType,
 void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
 {
     std::fstream file;
-    file.open(filepath, std::ios::in);
+    file.open(filepath, std::ios::in | std::ios::binary);
 
     struct Element
     {
@@ -113,6 +113,7 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
     std::vector<Element> elements;
 
     bool readHeaders = true;
+    bool isAscii = true;
 
     if (file.is_open())
     {
@@ -121,7 +122,7 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
         {
             size_t pos = 0;
             std::vector<std::string> tokens;
-            while ((pos = line.find(" ")) != std::string::npos) {
+            while ((pos = line.find_first_of(" \n\t\r")) != std::string::npos) {
                 std::string token = line.substr(0, pos);
                 if (!token.empty()) tokens.push_back(token);
                 line.erase(0, pos + 1);
@@ -131,7 +132,14 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
             if (tokens.size() == 0) continue;
 
             // Parsing the line
-            if (tokens[0].compare("element") == 0)
+            if (tokens[0].compare("format") == 0)
+            {
+                if (tokens.size() > 2)
+                {
+                    if (tokens[1].compare("binary_little_endian") == 0) isAscii = false;
+                }
+            }
+            else if (tokens[0].compare("element") == 0)
             {
                 if (tokens.size() != 3)
                 {
@@ -206,7 +214,10 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
                 for (uint32 i = 0; i < e.numElements; i++)
                 {
                     uint32 numFanIndices = 0;
-                    file >> numFanIndices;
+                    if (isAscii)
+                        file >> numFanIndices;
+                    else
+                        file.read((char*)&numFanIndices, sizeof(uint8));
 
                     uint32 originIndex = 0;
                     uint32 firstIndex = 0;
@@ -214,7 +225,10 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
                     for (uint32 j = 0; j < numFanIndices; j++)
                     {
                         uint32 index = 0;
-                        file >> index;
+                        if (isAscii)
+                            file >> index;
+                        else
+                            file.read((char*) &index, sizeof(uint32));
 
                         if (j == 0) originIndex = index;
 
@@ -242,18 +256,30 @@ void HimaliaPlyModel::LoadFile(std::filesystem::path filepath)
                         if (e.types[j] == HimaliaPlyDataType::Uchar)
                         {
                             uint32 uintValue = 0;
-                            file >> uintValue;
+                            if (isAscii)
+                                file >> uintValue;
+                            else
+                                file.read((char*)&uintValue, sizeof(uint32));
+
                             value = float(uintValue) / 255;
                         }
                         else if (e.types[j] == HimaliaPlyDataType::Int)
                         {
                             int32 intValue = 0;
+                            if (isAscii)
+                                file >> intValue;
+                            else
+                                file.read((char*)&intValue, sizeof(int32));
+
                             file >> intValue;
                             value = float(intValue);
                         }
                         else if (e.types[j] == HimaliaPlyDataType::Float)
                         {
-                            file >> value;
+                            if (isAscii)
+                                file >> value;
+                            else
+                                file.read((char*)&value, sizeof(float));
                         }
                     
                         if (e.offsets[j] != 0xFFFFFFFF) *(reinterpret_cast<float*>(reinterpret_cast<uint8*>(&v) + e.offsets[j])) = value;
